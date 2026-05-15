@@ -1,11 +1,18 @@
 <template>
-  <div class="scenic-list-page">
+  <div class="scenic-list-page atmosphere-gradient">
     <div class="container">
       <AppBreadcrumb :items="[{ title: '景点查询' }]" />
 
+      <!-- 页面标题 -->
+      <div class="page-header">
+        <span class="page-eyebrow">Discover</span>
+        <h1 class="page-title">探索目的地</h1>
+        <div class="gold-divider"></div>
+      </div>
+
       <!-- 搜索栏 -->
       <div class="search-section">
-        <SearchBar v-model="keyword" placeholder="搜索景点名称、城市..." @search="handleSearch" />
+        <SearchBar v-model="keyword" placeholder="搜索景点名称、城市、关键词…" @search="handleSearch" />
       </div>
 
       <!-- 筛选器 -->
@@ -90,6 +97,27 @@ onMounted(() => {
 <style scoped>
 .scenic-list-page {
   padding: var(--spacing-lg) 0 var(--spacing-3xl);
+}
+
+.page-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.page-eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--color-gold);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-4xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--spacing-sm);
 }
 
 .scenic-grid {

@@ -10,12 +10,12 @@
       @keyup.enter="handleSearch"
     >
       <template #prefix>
-        <el-icon><Search /></el-icon>
+        <el-icon :color="isFocused ? '#c8a951' : '#6b6560'"><Search /></el-icon>
       </template>
       <template #append>
-        <el-button @click="handleSearch">
+        <el-button class="search-btn" @click="handleSearch">
           <el-icon><Search /></el-icon>
-          搜索
+          探索
         </el-button>
       </template>
     </el-input>
@@ -28,7 +28,7 @@ import { ref } from 'vue'
 const props = defineProps({
   placeholder: {
     type: String,
-    default: '搜索景点、攻略...',
+    default: '搜索目的地、景点、游记…',
   },
   modelValue: {
     type: String,
@@ -58,40 +58,54 @@ function handleSearch() {
   transform: scale(1.02);
 }
 
+/* 深色玻璃态输入框 */
 .search-bar :deep(.el-input__wrapper) {
   border-radius: var(--radius-xl) 0 0 var(--radius-xl);
-  padding: 4px 4px 4px 16px;
+  padding: 6px 6px 6px 18px;
+  background: rgba(26, 34, 54, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow-md);
-  border: 2px solid transparent;
   transition: all var(--transition-normal);
 }
 
-.search-bar.focused :deep(.el-input__wrapper) {
-  border-color: var(--color-primary-light);
-  box-shadow: var(--shadow-lg), 0 0 0 4px var(--color-primary-bg);
+.search-bar :deep(.el-input__inner) {
+  color: var(--color-text-primary);
 }
 
+.search-bar :deep(.el-input__inner::placeholder) {
+  color: var(--color-text-muted);
+}
+
+.search-bar.focused :deep(.el-input__wrapper) {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 1px var(--color-gold), 0 0 0 4px var(--color-gold-bg), var(--shadow-lg);
+}
+
+/* 金色搜索按钮 */
 .search-bar :deep(.el-input-group__append) {
   border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  background: linear-gradient(135deg, var(--color-gold-dark), var(--color-gold));
   border: none;
   padding: 0;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-gold);
 }
 
-.search-bar :deep(.el-input-group__append .el-button) {
-  border: none;
-  background: transparent;
-  color: #fff;
+.search-btn {
+  border: none !important;
+  background: transparent !important;
+  color: var(--color-bg-deep) !important;
   height: 100%;
-  padding: 0 24px;
+  padding: 0 28px;
   margin: 0;
   border-radius: 0;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  font-family: var(--font-display);
 }
 
-.search-bar :deep(.el-input-group__append .el-button:hover) {
-  background: rgba(255, 255, 255, 0.15);
+.search-btn:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
 }
 </style>

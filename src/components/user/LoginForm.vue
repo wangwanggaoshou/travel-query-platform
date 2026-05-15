@@ -11,9 +11,6 @@
         登录
       </el-button>
     </el-form-item>
-    <div class="form-footer">
-      还没有账号？<router-link to="/register" class="link">立即注册</router-link>
-    </div>
   </el-form>
 </template>
 
@@ -52,12 +49,12 @@ async function handleSubmit() {
 }
 
 .link {
-  color: var(--color-primary);
+  color: var(--color-gold);
   text-decoration: none;
   font-weight: 500;
 }
 
 .link:hover {
-  text-decoration: underline;
+  color: var(--color-gold-light);
 }
 </style>

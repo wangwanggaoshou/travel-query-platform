@@ -10,6 +10,7 @@
 
 - 🔍 **智能搜索** - 多维度景点搜索与筛选（分类、地区、评分）
 - 🤖 **个性推荐** - 基于用户旅游偏好、所在地和签证信息的智能推荐
+- 🌍 **3D地球探索** - 基于 Cesium 和天地图的全景 3D 地球漫游，支持位置反向解析与全球景点发现
 - 🕷️ **评论聚合** - 通过网页爬虫从携程、马蜂窝、去哪儿等平台采集真实评论，**所有评论均标注来源网站**
 - 🛂 **签证管理** - 记录用户签证信息，辅助推荐可直接前往的目的地
 - 📖 **旅游攻略** - 精选旅行攻略浏览与分类查询
@@ -27,6 +28,7 @@
 | [Vue Router 4](https://router.vuejs.org/) | ^4.x | 客户端路由 |
 | [Pinia](https://pinia.vuejs.org/) | ^2.x | 状态管理 |
 | [Axios](https://axios-http.com/) | ^1.x | HTTP 客户端 |
+| [Cesium](https://cesium.com/platform/cesiumjs/) | ^1.x | 3D 地球可视化引擎 |
 | [Vite](https://vite.dev/) | ^8.x | 构建工具 |
 
 ### 后端技术栈
@@ -88,6 +90,10 @@ d:\gcsj_4\
 │   │   │   ├── ScenicCard.vue          # 景点卡片（含评分/价格/评论数）
 │   │   │   ├── ScenicFilter.vue        # 多维筛选器（分类/地区/评分）
 │   │   │   └── ScenicGallery.vue       # 图片画廊（含缩略图和查看器）
+│   │   ├── globe/                      # 3D地球探索组件
+│   │   │   ├── GlobeViewer.vue         # 核心地球查看器（Cesium）
+│   │   │   ├── AttractionCard.vue      # 景点发现卡片
+│   │   │   └── LoadingSpinner.vue      # 3D场景加载动画
 │   │   ├── guide/                      # 攻略模块组件
 │   │   │   └── GuideCard.vue           # 攻略卡片
 │   │   ├── review/                     # 评论组件
@@ -128,6 +134,7 @@ d:\gcsj_4\
 │       │   ├── HomeView.vue            # 首页（Banner + 搜索 + 热门 + 攻略）
 │       │   ├── ScenicListView.vue      # 景点列表（搜索 + 筛选 + 分页）
 │       │   ├── MapExploreView.vue      # 地图探索（高德地图底图 + 景点详情 + 评论）
+│       │   ├── GlobeExploreView.vue    # 3D地球探索（Cesium 漫游 + 景点发现）
 │       │   ├── GuideListView.vue       # 攻略列表（分类 + 搜索）
 │       │   ├── GuideDetailView.vue     # 攻略详情（文章 + 相关景点）
 │       │   ├── RecommendView.vue       # 智能推荐（偏好选择 + 推荐结果）
@@ -239,11 +246,18 @@ uv add fastapi uvicorn sqlalchemy pydantic python-jose passlib bcrypt
 uv add httpx beautifulsoup4 apscheduler  # 爬虫相关
 
 # 3. 启动开发服务器
-### 3. 高德地图配置
+### 3. API 密钥配置
 
-本项目依赖高德地图 JS API，请在 `src/views/front/MapExploreView.vue` 中配置您的 Key：
-- Key: `65a5302c2cbd34e599933b9ea6eafa60`
+本项目依赖多个第三方地图服务，请分别配置：
+
+**高德地图 (2D 地图探索)**
+- 文件路径：`src/views/front/MapExploreView.vue`
+- Key：`65a5302c2cbd34e599933b9ea6eafa60`
 - API 文档：[高德开放平台](https://amap.apifox.cn/)
+
+**Cesium & 天地图 (3D 地球探索)**
+- 文件路径：`src/config/cesium.config.js`
+- 说明：包含 Cesium Ion Token 以及 天地图开发者 Token 影像服务配置
 
 ```bash
 # 启动前端
@@ -268,6 +282,7 @@ npm run build
 |------|------|------|
 | `/` | 首页 | 轮播 Banner、搜索、热门景点、推荐攻略 |
 | `/map` | 地图探索 | 全屏高德地图、周边设施推荐、景点详情与评论 |
+| `/globe` | 3D地球 | 全景 3D 地球漫游、位置反向解析与景点发现 |
 | `/guide` | 攻略列表 | 分类浏览、搜索 |
 | `/guide/:id` | 攻略详情 | 文章阅读、相关景点 |
 | `/recommend` | 智能推荐 | 基于偏好/签证的个性化推荐 |

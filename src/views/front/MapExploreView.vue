@@ -1,7 +1,7 @@
 <template>
   <div class="map-explore-page">
     <!-- 左侧信息面板 -->
-    <div class="sidebar-panel glass" :class="{ 'is-collapsed': isSidebarCollapsed }">
+    <div class="sidebar-panel glass-dark" :class="{ 'is-collapsed': isSidebarCollapsed }">
       <div class="toggle-btn" @click="isSidebarCollapsed = !isSidebarCollapsed">
         <el-icon><component :is="isSidebarCollapsed ? 'ArrowRight' : 'ArrowLeft'" /></el-icon>
       </div>
@@ -265,8 +265,6 @@ onUnmounted(() => {
   left: 20px;
   width: 360px;
   bottom: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   z-index: 100;
@@ -287,9 +285,10 @@ onUnmounted(() => {
   transform: translateY(-50%);
   width: 24px;
   height: 60px;
-  background: #fff;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
   border-radius: 0 8px 8px 0;
-  box-shadow: 4px 0 6px rgba(0,0,0,0.1);
+  box-shadow: 4px 0 6px rgba(0,0,0,0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -389,6 +388,10 @@ onUnmounted(() => {
   gap: var(--spacing-sm);
 }
 
+.btn-group :deep(.el-button) {
+  margin-left: 0;
+}
+
 .empty-state {
   height: 100%;
   display: flex;
@@ -402,12 +405,14 @@ onUnmounted(() => {
 
 /* 地图标记标签样式 */
 :deep(.marker-label) {
-  background: #fff;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
   padding: 4px 8px;
   border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-sm);
   font-weight: 600;
   font-size: 12px;
   white-space: nowrap;
+  border: 1px solid var(--color-border-light);
 }
 </style>

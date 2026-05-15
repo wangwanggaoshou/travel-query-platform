@@ -22,6 +22,12 @@ export default [
     meta: { title: '地图探索' },
   },
   {
+    path: '/globe',
+    name: 'GlobeExplore',
+    component: () => import('@/views/front/GlobeExploreView.vue'),
+    meta: { title: '3D地球探索' },
+  },
+  {
     path: '/guide',
     name: 'GuideList',
     component: () => import('@/views/front/GuideListView.vue'),

@@ -17,9 +17,6 @@
         注册
       </el-button>
     </el-form-item>
-    <div class="form-footer">
-      已有账号？<router-link to="/login" class="link">立即登录</router-link>
-    </div>
   </el-form>
 </template>
 
@@ -79,12 +76,12 @@ async function handleSubmit() {
 }
 
 .link {
-  color: var(--color-primary);
+  color: var(--color-gold);
   text-decoration: none;
   font-weight: 500;
 }
 
 .link:hover {
-  text-decoration: underline;
+  color: var(--color-gold-light);
 }
 </style>

@@ -1,10 +1,11 @@
 <template>
-  <header class="app-header glass" :class="{ scrolled: isScrolled }">
+  <header class="app-header glass-dark" :class="{ scrolled: isScrolled }">
     <div class="container header-container">
       <!-- Logo -->
       <router-link to="/" class="header-logo">
-        <el-icon size="28" color="#0ea5e9"><Compass /></el-icon>
-        <span class="logo-text gradient-text">旅途智览</span>
+        <el-icon size="28" color="#c8a951"><Compass /></el-icon>
+        <span class="logo-text">旅途智览</span>
+        <span class="logo-accent">WANDERLUST</span>
       </router-link>
 
       <!-- 导航菜单 -->
@@ -28,6 +29,10 @@
         <router-link to="/map" class="nav-link" active-class="active">
           <el-icon><Location /></el-icon>
           <span>地图探索</span>
+        </router-link>
+        <router-link to="/globe" class="nav-link" active-class="active">
+          <el-icon><Promotion /></el-icon>
+          <span>3D地球</span>
         </router-link>
       </nav>
 
@@ -59,7 +64,7 @@
           </el-dropdown>
         </template>
         <template v-else>
-          <el-button type="primary" round @click="$router.push('/login')">
+          <el-button class="btn-login" round @click="$router.push('/login')">
             登录
           </el-button>
         </template>
@@ -98,16 +103,12 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   right: 0;
   z-index: 1000;
   height: 64px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid transparent;
   transition: all var(--transition-normal);
 }
 
 .app-header.scrolled {
-  border-bottom-color: var(--color-border-light);
-  box-shadow: var(--shadow-sm);
+  border-bottom-color: var(--color-gold-border);
+  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.4);
 }
 
 .header-container {
@@ -117,18 +118,34 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   height: 100%;
 }
 
+/* Logo */
 .header-logo {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
   text-decoration: none;
+  flex-shrink: 0;
 }
 
 .logo-text {
+  font-family: var(--font-display);
   font-size: var(--font-size-xl);
   font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
+.logo-accent {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--color-gold);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+/* 导航 */
 .header-nav {
   display: flex;
   align-items: center;
@@ -140,28 +157,51 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   font-weight: 500;
   transition: all var(--transition-fast);
   text-decoration: none;
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: var(--color-gold);
+  transform: scaleX(0);
+  transition: transform var(--transition-normal);
 }
 
 .nav-link:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
+  color: var(--color-gold);
+  background: var(--color-gold-bg);
+}
+
+.nav-link:hover::after {
+  transform: scaleX(1);
 }
 
 .nav-link.active {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
+  color: var(--color-gold);
+  background: var(--color-gold-bg);
   font-weight: 600;
 }
 
+.nav-link.active::after {
+  transform: scaleX(1);
+}
+
+/* 用户区域 */
 .header-actions {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .user-trigger {
@@ -169,18 +209,31 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   align-items: center;
   gap: var(--spacing-sm);
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: var(--radius-full);
   transition: background var(--transition-fast);
 }
 
 .user-trigger:hover {
-  background: var(--color-bg-hover);
+  background: var(--color-bg-card-hover);
 }
 
 .user-name {
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--color-text-primary);
+}
+
+.btn-login {
+  background: transparent;
+  border: 1px solid var(--color-gold-border);
+  color: var(--color-gold);
+  font-weight: 500;
+}
+
+.btn-login:hover {
+  background: var(--color-gold-bg);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
 }
 </style>

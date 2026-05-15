@@ -1,46 +1,49 @@
 <template>
   <div class="scenic-filter">
-    <el-card shadow="never" class="filter-card">
+    <div class="filter-card">
       <div class="filter-row">
-        <span class="filter-label">分类：</span>
+        <span class="filter-label">分类</span>
         <div class="filter-options">
-          <el-check-tag
+          <button
             v-for="cat in categories"
             :key="cat.value"
-            :checked="currentCategory === cat.value"
-            @change="handleCategoryChange(cat.value)"
+            class="filter-chip"
+            :class="{ active: currentCategory === cat.value }"
+            @click="handleCategoryChange(cat.value)"
           >
             {{ cat.label }}
-          </el-check-tag>
+          </button>
         </div>
       </div>
       <div class="filter-row">
-        <span class="filter-label">地区：</span>
+        <span class="filter-label">地区</span>
         <div class="filter-options">
-          <el-check-tag
+          <button
             v-for="region in regions"
             :key="region.value"
-            :checked="currentRegion === region.value"
-            @change="handleRegionChange(region.value)"
+            class="filter-chip"
+            :class="{ active: currentRegion === region.value }"
+            @click="handleRegionChange(region.value)"
           >
             {{ region.label }}
-          </el-check-tag>
+          </button>
         </div>
       </div>
       <div class="filter-row">
-        <span class="filter-label">评分：</span>
+        <span class="filter-label">评分</span>
         <div class="filter-options">
-          <el-check-tag
+          <button
             v-for="rating in ratings"
             :key="rating.value"
-            :checked="currentRating === rating.value"
-            @change="handleRatingChange(rating.value)"
+            class="filter-chip"
+            :class="{ active: currentRating === rating.value }"
+            @click="handleRatingChange(rating.value)"
           >
             {{ rating.label }}
-          </el-check-tag>
+          </button>
         </div>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -105,14 +108,21 @@ function emitChange() {
 </script>
 
 <style scoped>
+.scenic-filter {
+  margin-bottom: var(--spacing-xl);
+}
+
 .filter-card {
-  margin-bottom: var(--spacing-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 .filter-row {
   display: flex;
   align-items: flex-start;
+  gap: var(--spacing-md);
   padding: var(--spacing-sm) 0;
 }
 
@@ -121,17 +131,45 @@ function emitChange() {
 }
 
 .filter-label {
-  width: 60px;
+  width: 48px;
   flex-shrink: 0;
-  font-weight: 500;
-  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-gold);
   font-size: var(--font-size-sm);
   line-height: 32px;
+  letter-spacing: 0.03em;
 }
 
 .filter-options {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
+}
+
+.filter-chip {
+  padding: 4px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filter-chip:hover {
+  border-color: var(--color-gold-border);
+  color: var(--color-gold);
+  background: var(--color-gold-bg);
+}
+
+.filter-chip.active {
+  background: var(--color-gold-bg);
+  border-color: var(--color-gold-border);
+  color: var(--color-gold);
+  font-weight: 600;
 }
 </style>
