@@ -2,6 +2,7 @@
 @import './variables.css';
 @import './reset.css';
 @import './element.css';
+@import './amap.css';
 
 /* ===== 纹理叠加层 ===== */
 .grain-overlay {

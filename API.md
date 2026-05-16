@@ -12,8 +12,7 @@
 3. [用户模块 (User)](#用户模块)
 4. [景点模块 (Scenic)](#景点模块)
 5. [攻略模块 (Guide)](#攻略模块)
-6. [评论模块 (Review)](#评论模块)
-7. [错误码参考](#错误码参考)
+6. [错误码参考](#错误码参考)
 
 ---
 
@@ -36,8 +35,7 @@
 | 用户 (User) | 6 | 登录、注册、信息管理、偏好、签证、所在地 |
 | 景点 (Scenic) | 9 | 列表、详情、搜索、分类、热门、推荐、收藏 |
 | 攻略 (Guide) | 6 | 列表、详情、搜索、分类、热门、推荐 |
-| 评论 (Review) | 6 | 景点评论、来源站点、筛选、统计 |
-| **合计** | **27** | |
+| **合计** | **21** | |
 
 ---
 
@@ -363,7 +361,6 @@ GET /api/scenic/list
         "price": 228,
         "image": "https://example.com/zhangjiajie.jpg",
         "description": "以独特的石英砂岩峰林地貌闻名于世...",
-        "reviewCount": 1256,
         "tags": ["世界遗产", "5A景区", "自然奇观"]
       }
     ],
@@ -410,12 +407,7 @@ GET /api/scenic/detail/:id
       "lat": 29.3272,
       "lng": 110.4127
     },
-    "tags": ["世界遗产", "5A景区"],
-    "reviewCount": 1256,
-    "reviewStats": {
-      "average": 4.8,
-      "distribution": { "5": 800, "4": 350, "3": 80, "2": 20, "1": 6 }
-    }
+    "tags": ["世界遗产", "5A景区"]
   }
 }
 ```
@@ -500,7 +492,6 @@ GET /api/scenic/hot
         "price": 228,
         "image": "https://example.com/zjj.jpg",
         "description": "简短描述...",
-        "reviewCount": 1256
       }
     ]
   }
@@ -540,7 +531,6 @@ GET /api/scenic/recommend
         "price": 190,
         "image": "https://example.com/huangshan.jpg",
         "description": "...",
-        "reviewCount": 2300,
         "matchReason": "匹配您的「山岳景观」偏好",
         "matchScore": 0.95
       }
@@ -818,162 +808,6 @@ GET /api/guide/recommend
 
 ---
 
-## 评论模块
-
-> **说明:** 评论数据全部来源于网页爬虫，每条评论附带来源网站信息。系统不提供用户直接发表评论的功能。
-
-### 23. 获取景点评论列表 🔓
-
-```http
-GET /api/review/scenic/:scenicId
-```
-
-**路径参数:** `scenicId` — 景点 ID
-
-**查询参数:**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| page | int | 否 | 页码，默认 1 |
-| pageSize | int | 否 | 每页条数，默认 10 |
-| sortBy | string | 否 | 排序: newest/rating |
-
-**成功响应 (200):**
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "list": [
-      {
-        "id": 1,
-        "scenicId": 1,
-        "content": "非常震撼的自然景观，强烈推荐！",
-        "rating": 5,
-        "source": "携程旅行",
-        "sourceUrl": "https://ctrip.com/review/123",
-        "reviewer": "匿名用户",
-        "date": "2026-04-15",
-        "usefulCount": 42
-      }
-    ],
-    "total": 1256,
-    "page": 1,
-    "pageSize": 10
-  }
-}
-```
-
----
-
-### 24. 获取评论来源站点列表 🔓
-
-```http
-GET /api/review/sources
-```
-
-**成功响应 (200):**
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "sources": [
-      { "name": "携程旅行", "code": "ctrip", "icon": "https://example.com/ctrip.png" },
-      { "name": "马蜂窝", "code": "mafengwo", "icon": "https://example.com/mafengwo.png" },
-      { "name": "去哪儿", "code": "qunar", "icon": "https://example.com/qunar.png" },
-      { "name": "穷游网", "code": "qyer", "icon": "https://example.com/qyer.png" },
-      { "name": "TripAdvisor", "code": "tripadvisor", "icon": "https://example.com/tripadvisor.png" }
-    ]
-  }
-}
-```
-
----
-
-### 25. 按来源筛选评论 🔓
-
-```http
-GET /api/review/scenic/:scenicId/source/:source
-```
-
-**路径参数:**
-
-| 参数 | 说明 |
-|------|------|
-| scenicId | 景点 ID |
-| source | 来源站点代码 (如 "ctrip") |
-
-**查询参数:**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| page | int | 否 | 页码，默认 1 |
-| pageSize | int | 否 | 每页条数，默认 10 |
-
-**成功响应 (200):** 结构同评论列表
-
----
-
-### 26. 获取评论统计 🔓
-
-```http
-GET /api/review/scenic/:scenicId/stats
-```
-
-**路径参数:** `scenicId` — 景点 ID
-
-**成功响应 (200):**
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "scenicId": 1,
-    "average": 4.8,
-    "total": 1256,
-    "distribution": {
-      "5": 800,
-      "4": 350,
-      "3": 80,
-      "2": 20,
-      "1": 6
-    },
-    "sourceDistribution": {
-      "ctrip": 450,
-      "mafengwo": 320,
-      "qunar": 210,
-      "qyer": 156,
-      "tripadvisor": 120
-    },
-    "sentimentBreakdown": {
-      "positive": 0.85,
-      "neutral": 0.10,
-      "negative": 0.05
-    }
-  }
-}
-```
-
----
-
-### 27. 查看 Markdown 视图 🔓
-
-虽然系统前端不直接调用此端点，但 API 支持返回 Markdown 格式的评论视图，方便集成。
-
-```http
-GET /api/review/scenic/:scenicId/markdown
-```
-
-**Accept:** `text/markdown`
-
-**成功响应:** Markdown 格式的评论文本。
-
----
-
 ## 错误码参考
 
 ### HTTP 状态码
@@ -1007,7 +841,6 @@ GET /api/review/scenic/:scenicId/markdown
 | 2002 | 已收藏该景点 | 重复收藏 |
 | 2003 | 未收藏该景点 | 取消收藏时未找到记录 |
 | 3001 | 攻略不存在 | 攻略 ID 无效 |
-| 4001 | 评论数据获取失败 | 爬虫数据异常 |
 | 5001 | 服务器内部错误 | 未预期的错误 |
 
 ### 错误响应示例
@@ -1050,11 +883,6 @@ GET /api/review/scenic/:scenicId/markdown
 | 20 | GET | `/guide/categories` | 攻略分类 | 🔓 |
 | 21 | GET | `/guide/hot` | 热门攻略 | 🔓 |
 | 22 | GET | `/guide/recommend` | 推荐攻略 | 🔒 |
-| 23 | GET | `/review/scenic/:scenicId` | 景点评论 | 🔓 |
-| 24 | GET | `/review/sources` | 评论来源 | 🔓 |
-| 25 | GET | `/review/scenic/:scenicId/source/:source` | 按来源筛选 | 🔓 |
-| 26 | GET | `/review/scenic/:scenicId/stats` | 评论统计 | 🔓 |
-| 27 | GET | `/review/scenic/:scenicId/markdown` | Markdown 视图 | 🔓 |
 
 ### B. 前端请求工具
 
@@ -1073,6 +901,5 @@ src/api/
 ├── index.js      — 统一导出
 ├── user.js       — 用户模块 (7 接口)
 ├── scenic.js     — 景点模块 (9 接口)
-├── guide.js      — 攻略模块 (6 接口)
-└── review.js     — 评论模块 (5 接口)
+└── guide.js      — 攻略模块 (6 接口)
 ```

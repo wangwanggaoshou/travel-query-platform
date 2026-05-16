@@ -1,16 +1,16 @@
 <template>
-  <section class="hero-banner">
+  <section ref="heroRef" class="hero-banner">
     <div class="hero-slide">
       <div class="hero-backdrop"></div>
       <div class="hero-content">
-        <span class="hero-eyebrow reveal reveal-delay-1">Wanderlust Editorial</span>
-        <h1 class="hero-title reveal reveal-delay-2">
+        <span class="hero-eyebrow">Wanderlust Editorial</span>
+        <h1 class="hero-title">
           探索世界<br /><span class="hero-title-accent">发现未知之美</span>
         </h1>
-        <p class="hero-desc reveal reveal-delay-3">
-          汇聚全球热门景点的真实评论与智能推荐，<br />让每一次旅途都成为值得珍藏的故事
+        <p class="hero-desc">
+          汇聚国内热门景点信息与智能推荐，<br />让每一次旅途都成为值得珍藏的故事
         </p>
-        <div class="hero-actions reveal reveal-delay-4">
+        <div class="hero-actions">
           <el-button class="hero-btn-primary" size="large" round @click="$router.push('/scenic')">
             开始探索
             <el-icon class="el-icon--right"><ArrowRight /></el-icon>
@@ -19,29 +19,80 @@
             智能推荐
           </el-button>
         </div>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-value">全球灵感</span>
+            <span class="stat-label">景点与攻略聚合</span>
+          </div>
+          <div class="stat-divider" aria-hidden="true" />
+          <div class="stat-item">
+            <span class="stat-value">高德 POI</span>
+            <span class="stat-label">真实坐标与地址</span>
+          </div>
+          <div class="stat-divider" aria-hidden="true" />
+          <div class="stat-item">
+            <span class="stat-value">地图 · 3D</span>
+            <span class="stat-label">双模式探索</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="hero-scroll-hint">
+    <button
+      type="button"
+      class="hero-scroll-hint"
+      :class="{ 'is-hidden': !showScrollHint }"
+      aria-label="向下滚动浏览更多内容"
+      @click="scrollToContent"
+    >
       <span>向下探索</span>
       <el-icon><ArrowDown /></el-icon>
-    </div>
+    </button>
   </section>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-const router = useRouter()
+import { ref, onMounted, onUnmounted } from 'vue'
+
+const heroRef = ref(null)
+const showScrollHint = ref(true)
+
+function updateScrollHint() {
+  const el = heroRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  // 仍在首屏 Hero 区域内时保持显示（约 25% 高度滚出后才隐藏）
+  showScrollHint.value = rect.bottom > window.innerHeight * 0.25
+}
+
+function scrollToContent() {
+  const el = heroRef.value
+  if (!el) return
+  const target = Math.max(0, el.offsetHeight - 72)
+  window.scrollTo({ top: target, behavior: 'smooth' })
+}
+
+onMounted(() => {
+  updateScrollHint()
+  window.addEventListener('scroll', updateScrollHint, { passive: true })
+  window.addEventListener('resize', updateScrollHint, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', updateScrollHint)
+  window.removeEventListener('resize', updateScrollHint)
+})
 </script>
 
 <style scoped>
 .hero-banner {
   position: relative;
-  min-height: calc(100vh - 64px);
+  min-height: min(88vh, 820px);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   margin-bottom: 0;
+  padding-bottom: 48px;
 }
 
 /* 深色大气背景 */
@@ -49,10 +100,10 @@ const router = useRouter()
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(200, 169, 81, 0.08), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(13, 148, 136, 0.07), transparent 60%),
-    radial-gradient(ellipse 40% 60% at 80% 50%, rgba(200, 169, 81, 0.04), transparent 50%),
-    linear-gradient(180deg, var(--color-bg-deep) 0%, var(--color-bg-primary) 50%, var(--color-bg-deep) 100%);
+    radial-gradient(ellipse 70% 55% at 50% 35%, rgba(200, 169, 81, 0.18), transparent 65%),
+    radial-gradient(ellipse 50% 40% at 15% 75%, rgba(13, 148, 136, 0.12), transparent 55%),
+    radial-gradient(ellipse 45% 50% at 85% 45%, rgba(200, 169, 81, 0.08), transparent 50%),
+    linear-gradient(180deg, var(--color-bg-deep) 0%, var(--color-bg-primary) 45%, var(--color-bg-deep) 100%);
   pointer-events: none;
 }
 
@@ -71,10 +122,16 @@ const router = useRouter()
 
 .hero-content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   text-align: center;
   max-width: 800px;
   padding: 0 var(--content-padding);
+}
+
+/* 首屏文案默认可见，不依赖全局 .reveal 动画 */
+.hero-content :is(.hero-eyebrow, .hero-title, .hero-desc, .hero-actions, .hero-stats) {
+  opacity: 1;
+  transform: none;
 }
 
 .hero-eyebrow {
@@ -150,27 +207,91 @@ const router = useRouter()
   font-size: var(--font-size-base) !important;
 }
 
-.hero-btn-secondary:hover {
-  background: var(--color-gold-bg) !important;
-  border-color: var(--color-gold) !important;
+.hero-stats {
+  margin-top: var(--spacing-2xl);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: rgba(17, 24, 39, 0.45);
+  border: 1px solid rgba(200, 169, 81, 0.15);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
 }
 
-/* 底部滚动提示 */
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-gold);
+  letter-spacing: 0.06em;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.stat-divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 36px;
+  background: rgba(200, 169, 81, 0.2);
+}
+
+@media (max-width: 640px) {
+  .hero-stats {
+    flex-direction: column;
+    align-items: center;
+  }
+  .stat-divider {
+    width: 60%;
+    height: 1px;
+    min-height: 0;
+  }
+}
 .hero-scroll-hint {
-  position: absolute;
-  bottom: 32px;
+  position: fixed;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  color: var(--color-text-muted);
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  cursor: pointer;
   animation: float 3s ease-in-out infinite;
-  opacity: 0.6;
+  z-index: 50;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.hero-scroll-hint:hover {
+  color: var(--color-gold);
+}
+
+.hero-scroll-hint.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  animation: none;
 }
 
 @keyframes float {

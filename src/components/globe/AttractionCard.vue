@@ -13,10 +13,14 @@
           <h2>{{ countryData?.name }}</h2>
           <span class="subtitle">{{ countryData?.nameEn }}</span>
         </div>
+        <div v-if="loading" class="header-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>景色加载中</span>
+        </div>
       </div>
 
       <!-- 景点列表 -->
-      <div class="attractions-list">
+      <div class="attractions-list" v-loading="loading" element-loading-text="正在加载标志性目的地…">
         <div
           v-for="attraction in attractions"
           :key="attraction.id"
@@ -25,10 +29,10 @@
         >
           <div class="image-wrapper">
             <img
-              :src="attraction.image"
+              :src="coverUrl(attraction)"
               :alt="attraction.name"
               loading="lazy"
-              @error="onImageError"
+              @error="onScenicImageError"
             />
             <div class="image-overlay"></div>
           </div>
@@ -39,13 +43,14 @@
               {{ attraction.location }}
             </p>
             <p class="description">{{ attraction.description }}</p>
+            <span v-if="typeLabel(attraction.type)" class="type-badge">{{ typeLabel(attraction.type) }}</span>
           </div>
         </div>
       </div>
 
       <!-- 底部提示 -->
       <div class="card-footer">
-        <span>点击地图其他位置发现更多</span>
+        <span>各国最多 5 个标志性目的地 · 点击查看图集与 AI 攻略</span>
       </div>
     </div>
   </transition>
@@ -53,6 +58,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { resolveScenicCover, onScenicImageError } from '@/utils/scenicImage'
 
 const props = defineProps({
   visible: {
@@ -62,6 +68,10 @@ const props = defineProps({
   countryData: {
     type: Object,
     default: null
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -79,8 +89,18 @@ const onAttractionClick = (attraction) => {
   emit('select', attraction)
 }
 
-const onImageError = (e) => {
-  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%231a2236" width="400" height="300"/%3E%3Ctext fill="%236b6560" font-family="sans-serif" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E景点图片%3C/text%3E%3C/svg%3E'
+const TYPE_LABELS = {
+  landmark: '地标',
+  nature: '自然奇观',
+  event: '节庆/体验',
+}
+
+function typeLabel(type) {
+  return TYPE_LABELS[type] || ''
+}
+
+function coverUrl(attraction) {
+  return resolveScenicCover(attraction)
 }
 </script>
 
@@ -131,8 +151,22 @@ const onImageError = (e) => {
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
   border-bottom: 1px solid var(--color-border-light);
+}
+
+.header-loading {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-gold);
+}
+
+.header-loading .el-icon {
+  font-size: 16px;
 }
 
 .flag {
@@ -267,6 +301,16 @@ const onImageError = (e) => {
   overflow: hidden;
 }
 
+.type-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  font-size: 10px;
+  color: var(--color-gold);
+  border: 1px solid var(--color-gold-border);
+  border-radius: var(--radius-full);
+}
+
 .card-footer {
   padding: 12px 24px;
   background: var(--color-bg-secondary);
@@ -295,7 +339,7 @@ const onImageError = (e) => {
   transform: translateY(-50%) translateX(50px);
 }
 
-/* 响应式设计 */
+/* 响应式设�?*/
 @media (max-width: 768px) {
   .attraction-card {
     right: 16px;

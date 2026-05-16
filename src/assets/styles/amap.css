@@ -1,0 +1,115 @@
+/* 高德 POI 信息窗：白底深字，避免继承站点深色主题浅色文字 */
+.amap-info-content,
+.amap-lib-infowindow-content {
+  color: #1f2937 !important;
+  background: #ffffff !important;
+}
+
+.amap-info-content *,
+.amap-lib-infowindow-content * {
+  color: #374151 !important;
+}
+
+.amap-info-content h3,
+.amap-info-content h4,
+.amap-info-content .poi-name,
+.amap-lib-infowindow-content h3,
+.amap-lib-infowindow-content h4 {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+.amap-info-content a,
+.amap-lib-infowindow-content a {
+  color: #0d9488 !important;
+}
+
+.amap-info-close {
+  color: #6b7280 !important;
+}
+
+.map-poi-info {
+  padding: 12px 14px;
+  min-width: 200px;
+  max-width: 300px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+  color: #111827;
+}
+
+.map-poi-info .poi-title,
+.map-poi-info h4 {
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #000000 !important;
+}
+
+.map-poi-info .poi-line,
+.map-poi-info p {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #1f2937 !important;
+}
+
+.map-poi-info .poi-line:last-child,
+.map-poi-info p:last-child {
+  margin-bottom: 0;
+}
+
+/* 自定义信息窗外层透明，避免遮挡白底卡片 */
+.amap-info-contentContainer:has(.map-poi-info) {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+/* 路线绘制后默认图层可能盖住信息窗，强制置顶 */
+.amap-info,
+.amap-info-outer,
+.amap-info-content,
+.amap-info-sharp,
+.amap-info-close {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+.map-poi-info {
+  position: relative;
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+.map-poi-info .poi-route-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #c8a951 0%, #a88b3a 100%);
+  color: #0a0f1a !important;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10001;
+  transition: opacity 0.2s ease;
+}
+
+.map-poi-info .poi-route-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.map-poi-info .poi-route-btn:hover {
+  opacity: 0.9;
+}

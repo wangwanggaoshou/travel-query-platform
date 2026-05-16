@@ -17,14 +17,10 @@
           @click="$router.push(`/map?id=${item.id}`)"
         >
           <div class="card-image">
-            <img :src="item.image" :alt="item.name" />
+            <img :src="resolveScenicCover(item)" :alt="item.name" @error="onScenicImageError" />
             <div class="card-image-overlay"></div>
             <div class="card-badge">
               <el-tag size="small" effect="dark" class="gilded-tag">{{ item.category }}</el-tag>
-            </div>
-            <div class="card-rating">
-              <el-icon color="#c8a951"><Star /></el-icon>
-              <span>{{ item.rating }}</span>
             </div>
           </div>
           <div class="card-body">
@@ -38,7 +34,6 @@
               <span class="card-price" v-if="item.price">
                 <span class="price-currency">¥</span>{{ item.price }}<span class="price-suffix">起</span>
               </span>
-              <span class="card-reviews">{{ item.reviewCount }} 条评论</span>
             </div>
           </div>
         </div>
@@ -56,6 +51,8 @@
 </template>
 
 <script setup>
+import { resolveScenicCover, onScenicImageError } from '@/utils/scenicImage'
+
 defineProps({
   scenicList: {
     type: Array,
@@ -121,10 +118,12 @@ defineProps({
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    to top,
-    rgba(10, 15, 26, 0.6) 0%,
-    transparent 40%,
-    transparent 100%
+    to bottom,
+    rgba(10, 15, 26, 0.72) 0%,
+    rgba(10, 15, 26, 0.2) 32%,
+    transparent 48%,
+    transparent 60%,
+    rgba(10, 15, 26, 0.6) 100%
   );
 }
 
@@ -135,28 +134,15 @@ defineProps({
 }
 
 .gilded-tag {
-  background: rgba(200, 169, 81, 0.2) !important;
-  border: 1px solid var(--color-gold-border) !important;
-  color: var(--color-gold) !important;
-  font-family: var(--font-display);
-  letter-spacing: 0.05em;
-}
-
-.card-rating {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: rgba(10, 15, 26, 0.8);
+  background: rgba(10, 15, 26, 0.88) !important;
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(200, 169, 81, 0.2);
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  color: var(--color-gold);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  border: 1px solid rgba(200, 169, 81, 0.45) !important;
+  color: var(--color-gold-light) !important;
+  font-family: var(--font-display);
+  font-weight: 600 !important;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .card-body {
@@ -216,11 +202,6 @@ defineProps({
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   font-weight: 400;
-}
-
-.card-reviews {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
 }
 
 .view-more {

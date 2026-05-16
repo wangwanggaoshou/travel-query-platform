@@ -4,6 +4,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getScenicList, getScenicDetail, searchScenic, getHotScenic } from '@/api/scenic'
+import { formatScenicList, formatScenicItem } from '@/utils/categoryLabels'
 
 export const useScenicStore = defineStore('scenic', () => {
   // 状态
@@ -17,7 +18,6 @@ export const useScenicStore = defineStore('scenic', () => {
     category: '',
     region: '',
     priceRange: '',
-    rating: '',
   })
 
   // 获取景点列表
@@ -25,7 +25,7 @@ export const useScenicStore = defineStore('scenic', () => {
     loading.value = true
     try {
       const res = await getScenicList(params)
-      scenicList.value = res.data.list || []
+      scenicList.value = formatScenicList(res.data.list || [])
       total.value = res.data.total || 0
     } catch (error) {
       console.error('获取景点列表失败:', error)
@@ -39,7 +39,7 @@ export const useScenicStore = defineStore('scenic', () => {
     loading.value = true
     try {
       const res = await getScenicDetail(id)
-      currentScenic.value = res.data
+      currentScenic.value = formatScenicItem(res.data)
     } catch (error) {
       console.error('获取景点详情失败:', error)
     } finally {
@@ -53,7 +53,7 @@ export const useScenicStore = defineStore('scenic', () => {
     loading.value = true
     try {
       const res = await searchScenic({ keyword, ...filters.value })
-      scenicList.value = res.data.list || []
+      scenicList.value = formatScenicList(res.data.list || [])
       total.value = res.data.total || 0
     } catch (error) {
       console.error('搜索景点失败:', error)
@@ -66,7 +66,7 @@ export const useScenicStore = defineStore('scenic', () => {
   async function fetchHotScenic(params = {}) {
     try {
       const res = await getHotScenic(params)
-      hotScenicList.value = res.data || []
+      hotScenicList.value = formatScenicList(res.data?.list || res.data || [])
     } catch (error) {
       console.error('获取热门景点失败:', error)
     }
@@ -79,7 +79,7 @@ export const useScenicStore = defineStore('scenic', () => {
 
   // 重置筛选
   function resetFilters() {
-    filters.value = { category: '', region: '', priceRange: '', rating: '' }
+    filters.value = { category: '', region: '', priceRange: '' }
     searchKeyword.value = ''
   }
 

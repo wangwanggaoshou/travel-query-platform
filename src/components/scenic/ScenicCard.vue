@@ -1,14 +1,10 @@
 <template>
   <div class="scenic-card hover-lift" @click="$emit('click', scenic)">
     <div class="card-cover">
-      <img :src="scenic.image" :alt="scenic.name" />
+      <img :src="coverUrl" :alt="scenic.name" @error="onScenicImageError" />
       <div class="card-cover-gradient"></div>
       <div class="card-overlay">
         <span class="card-category">{{ scenic.category }}</span>
-      </div>
-      <div class="card-score">
-        <el-icon color="#c8a951"><Star /></el-icon>
-        {{ scenic.rating }}
       </div>
     </div>
     <div class="card-info">
@@ -17,29 +13,35 @@
         <el-icon><Location /></el-icon>
         {{ scenic.location }}
       </p>
-      <p class="card-desc">{{ scenic.description }}</p>
+      <p v-if="showDescription" class="card-desc">{{ scenic.description }}</p>
       <div class="card-bottom">
         <span class="card-price" v-if="scenic.price">
           <span class="price-currency">¥</span>{{ scenic.price }}
         </span>
-        <span class="card-reviews">
-          <el-icon><ChatDotRound /></el-icon>
-          {{ scenic.reviewCount || 0 }} 条评论
-        </span>
+        <span class="card-region" v-if="scenic.region === 'domestic'">国内</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { resolveScenicCover, onScenicImageError } from '@/utils/scenicImage'
+
+const props = defineProps({
   scenic: {
     type: Object,
     required: true,
   },
+  showDescription: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 defineEmits(['click'])
+
+const coverUrl = computed(() => resolveScenicCover(props.scenic))
 </script>
 
 <style scoped>
@@ -78,9 +80,12 @@ defineEmits(['click'])
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    to top,
-    rgba(10, 15, 26, 0.5) 0%,
-    transparent 40%
+    to bottom,
+    rgba(10, 15, 26, 0.72) 0%,
+    rgba(10, 15, 26, 0.2) 32%,
+    transparent 48%,
+    transparent 60%,
+    rgba(10, 15, 26, 0.5) 100%
   );
 }
 
@@ -92,31 +97,18 @@ defineEmits(['click'])
 
 .card-category {
   display: inline-block;
-  padding: 4px 12px;
-  background: rgba(200, 169, 81, 0.15);
-  border: 1px solid var(--color-gold-border);
-  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  background: rgba(10, 15, 26, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(200, 169, 81, 0.45);
+  border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
-  color: var(--color-gold);
+  font-weight: 600;
+  color: var(--color-gold-light);
   font-family: var(--font-display);
   letter-spacing: 0.05em;
-}
-
-.card-score {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(10, 15, 26, 0.8);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(200, 169, 81, 0.2);
-  color: var(--color-gold);
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .card-info {
@@ -172,7 +164,7 @@ defineEmits(['click'])
   vertical-align: super;
 }
 
-.card-reviews {
+.card-region {
   display: flex;
   align-items: center;
   gap: 4px;

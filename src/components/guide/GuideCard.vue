@@ -1,7 +1,11 @@
 <template>
   <div class="guide-card hover-lift" @click="$emit('click', guide)">
     <div class="guide-cover">
-      <img :src="guide.cover" :alt="guide.title" />
+      <img v-if="guide.cover" :src="guide.cover" :alt="guide.title" loading="lazy" />
+      <div v-else class="cover-placeholder">
+        <el-icon :size="40"><Picture /></el-icon>
+        <span>{{ coverLabel }}</span>
+      </div>
     </div>
     <div class="guide-content">
       <div class="guide-tags">
@@ -9,7 +13,10 @@
           {{ tag }}
         </el-tag>
       </div>
-      <h3 class="guide-title">{{ guide.title }}</h3>
+      <div class="title-row">
+        <h3 class="guide-title">{{ guide.title }}</h3>
+        <el-tag size="small" type="warning" effect="plain">AI</el-tag>
+      </div>
       <p class="guide-summary">{{ guide.summary }}</p>
       <div class="guide-meta">
         <span class="meta-author">
@@ -23,7 +30,10 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { Picture } from '@element-plus/icons-vue'
+
+const props = defineProps({
   guide: {
     type: Object,
     required: true,
@@ -31,6 +41,11 @@ defineProps({
 })
 
 defineEmits(['click'])
+
+const coverLabel = computed(() => {
+  const tag = props.guide.tags?.find((t) => t && !['AI生成', '智能攻略'].includes(t))
+  return tag || props.guide.title?.slice(0, 8) || 'AI 攻略'
+})
 </script>
 
 <style scoped>
@@ -54,6 +69,21 @@ defineEmits(['click'])
   transition: transform var(--transition-slow);
 }
 
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-muted);
+  background: linear-gradient(145deg, var(--color-bg-deep), var(--color-border-light));
+  font-size: var(--font-size-sm);
+  text-align: center;
+  padding: var(--spacing-md);
+}
+
 .guide-card:hover .guide-cover img {
   transform: scale(1.08);
 }
@@ -69,10 +99,17 @@ defineEmits(['click'])
   margin-bottom: var(--spacing-sm);
 }
 
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
 .guide-title {
   font-size: var(--font-size-base);
   font-weight: 600;
-  margin-bottom: var(--spacing-sm);
+  flex: 1;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

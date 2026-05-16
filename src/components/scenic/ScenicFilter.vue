@@ -29,58 +29,23 @@
           </button>
         </div>
       </div>
-      <div class="filter-row">
-        <span class="filter-label">评分</span>
-        <div class="filter-options">
-          <button
-            v-for="rating in ratings"
-            :key="rating.value"
-            class="filter-chip"
-            :class="{ active: currentRating === rating.value }"
-            @click="handleRatingChange(rating.value)"
-          >
-            {{ rating.label }}
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { getScenicCategories } from '@/api/scenic'
 
 const emit = defineEmits(['filter-change'])
 
 const currentCategory = ref('')
 const currentRegion = ref('')
-const currentRating = ref('')
-
-const categories = [
-  { label: '全部', value: '' },
-  { label: '自然风光', value: 'nature' },
-  { label: '历史古迹', value: 'history' },
-  { label: '主题乐园', value: 'theme_park' },
-  { label: '海滨度假', value: 'beach' },
-  { label: '山岳景观', value: 'mountain' },
-  { label: '城市观光', value: 'city' },
-]
+const categories = ref([{ label: '全部', value: '' }])
 
 const regions = [
   { label: '全部', value: '' },
   { label: '国内', value: 'domestic' },
-  { label: '东南亚', value: 'southeast_asia' },
-  { label: '日韩', value: 'japan_korea' },
-  { label: '欧洲', value: 'europe' },
-  { label: '北美', value: 'north_america' },
-  { label: '大洋洲', value: 'oceania' },
-]
-
-const ratings = [
-  { label: '全部', value: '' },
-  { label: '4.5分以上', value: '4.5' },
-  { label: '4.0分以上', value: '4.0' },
-  { label: '3.5分以上', value: '3.5' },
 ]
 
 function handleCategoryChange(value) {
@@ -93,18 +58,25 @@ function handleRegionChange(value) {
   emitChange()
 }
 
-function handleRatingChange(value) {
-  currentRating.value = currentRating.value === value ? '' : value
-  emitChange()
-}
-
 function emitChange() {
   emit('filter-change', {
     category: currentCategory.value,
     region: currentRegion.value,
-    rating: currentRating.value,
   })
 }
+
+onMounted(async () => {
+  try {
+    const res = await getScenicCategories()
+    const apiCats = (res.data?.categories || []).map((c) => ({
+      label: c.label,
+      value: c.value,
+    }))
+    categories.value = [{ label: '全部', value: '' }, ...apiCats]
+  } catch (error) {
+    console.error('获取景点分类失败:', error)
+  }
+})
 </script>
 
 <style scoped>

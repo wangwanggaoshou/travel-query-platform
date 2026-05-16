@@ -1,72 +1,92 @@
 <template>
   <div class="guide-detail-page">
     <div class="container" v-loading="loading">
-      <AppBreadcrumb :items="[{ title: '旅游攻略', path: '/guide' }, { title: guide.title || '攻略详情' }]" />
+      <AppBreadcrumb :items="[{ title: 'AI 攻略', path: '/guide' }, { title: guide.title || '攻略详情' }]" />
 
-      <article class="guide-article">
-        <!-- 封面图 -->
+      <article v-if="guide.id" class="guide-article">
         <div class="article-cover" v-if="guide.cover">
           <img :src="guide.cover" :alt="guide.title" />
         </div>
 
-        <!-- 文章头部 -->
         <header class="article-header">
-          <div class="article-tags" v-if="guide.tags">
+          <div class="article-tags" v-if="guide.tags?.length">
             <el-tag v-for="tag in guide.tags" :key="tag" size="small" type="info" effect="plain">
               {{ tag }}
             </el-tag>
           </div>
           <h1 class="article-title">{{ guide.title }}</h1>
+          <el-tag type="warning" size="small" effect="dark" class="agent-badge">AI 生成</el-tag>
           <div class="article-meta">
             <span class="meta-author">
-              <el-avatar :size="28" icon="UserFilled" />
+              <el-avatar :size="28" :src="guide.authorAvatar" icon="UserFilled" />
               {{ guide.author }}
             </span>
             <span class="meta-date">
               <el-icon><Calendar /></el-icon>
               {{ guide.date }}
             </span>
-            <span class="meta-views">
-              <el-icon><View /></el-icon>
-              {{ guide.views || 0 }}次浏览
-            </span>
           </div>
         </header>
 
-        <!-- 文章内容 -->
         <div class="article-content" v-html="guide.content"></div>
 
-        <!-- 相关景点 -->
-        <section class="related-scenic" v-if="guide.relatedScenic && guide.relatedScenic.length">
-          <h2>相关景点</h2>
+        <section class="related-guides" v-if="relatedGuides.length">
+          <h2>相关攻略</h2>
           <div class="related-grid">
-            <ScenicCard
-              v-for="scenic in guide.relatedScenic"
-              :key="scenic.id"
-              :scenic="scenic"
-              @click="$router.push(`/map?id=${scenic.id}`)"
-            />
+            <div
+              v-for="item in relatedGuides"
+              :key="item.id"
+              class="related-item"
+              @click="$router.push(`/guide/${item.id}`)"
+            >
+              <img v-if="item.cover" :src="item.cover" :alt="item.title" />
+              <p>{{ item.title }}</p>
+            </div>
           </div>
         </section>
+
+        <section class="related-scenic" v-if="guide.scenic?.id">
+          <h2>相关景点</h2>
+          <el-button type="primary" @click="$router.push(`/map?id=${guide.scenic.id}`)">
+            在地图上查看景点
+          </el-button>
+        </section>
       </article>
+
+      <el-empty v-else-if="!loading" description="攻略不存在或已过期，请重新生成">
+        <el-button type="primary" @click="$router.push('/guide')">返回 AI 攻略</el-button>
+      </el-empty>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
-import ScenicCard from '@/components/scenic/ScenicCard.vue'
+import { getRecentGuideById, getRelatedRecentGuides } from '@/utils/recentGuides'
 
 const route = useRoute()
 const loading = ref(false)
 const guide = ref({})
 
-onMounted(() => {
-  const id = route.params.id
-  // TODO: 获取攻略详情
-})
+const relatedGuides = computed(() =>
+  getRelatedRecentGuides(guide.value.scenic?.id, guide.value.id).map((g) => ({
+    id: g.id,
+    title: g.title,
+    cover: g.cover,
+  }))
+)
+
+function loadGuide() {
+  loading.value = true
+  const found = getRecentGuideById(route.params.id)
+  guide.value = found || {}
+  loading.value = false
+}
+
+onMounted(loadGuide)
+watch(() => route.params.id, loadGuide)
 </script>
 
 <style scoped>
@@ -111,6 +131,10 @@ onMounted(() => {
   margin-bottom: var(--spacing-md);
 }
 
+.agent-badge {
+  margin-bottom: var(--spacing-md);
+}
+
 .article-meta {
   display: flex;
   align-items: center;
@@ -127,8 +151,7 @@ onMounted(() => {
   gap: var(--spacing-sm);
 }
 
-.meta-date,
-.meta-views {
+.meta-date {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -153,11 +176,13 @@ onMounted(() => {
   color: var(--color-text-primary);
 }
 
+.related-guides,
 .related-scenic {
   padding: var(--spacing-xl);
   border-top: 1px solid var(--color-border-light);
 }
 
+.related-guides h2,
 .related-scenic h2 {
   font-size: var(--font-size-xl);
   margin-bottom: var(--spacing-lg);
@@ -165,7 +190,30 @@ onMounted(() => {
 
 .related-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--spacing-md);
+}
+
+.related-item {
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  transition: border-color var(--transition-fast);
+}
+
+.related-item:hover {
+  border-color: var(--color-gold-border);
+}
+
+.related-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+.related-item p {
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-sm);
 }
 </style>

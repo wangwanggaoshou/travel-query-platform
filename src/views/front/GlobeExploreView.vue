@@ -13,9 +13,17 @@
     <!-- 景点卡片 -->
     <AttractionCard
       :visible="cardVisible"
+      :loading="countryLoading"
       :countryData="selectedCountry"
       @close="closeCard"
       @select="handleAttractionSelect"
+    />
+
+    <GlobeAttractionDetail
+      :visible="detailVisible"
+      :attraction="selectedAttraction"
+      :countryName="selectedCountry?.name"
+      @close="closeDetail"
     />
 
     <!-- 页眉信息覆盖层 -->
@@ -44,6 +52,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import GlobeViewer from '@/components/globe/GlobeViewer.vue'
 import AttractionCard from '@/components/globe/AttractionCard.vue'
+import GlobeAttractionDetail from '@/components/globe/GlobeAttractionDetail.vue'
 import LoadingSpinner from '@/components/globe/LoadingSpinner.vue'
 
 // 地球控制状态
@@ -54,6 +63,9 @@ const globeViewerRef = ref(null)
 const loading = ref(true)
 const cardVisible = ref(false)
 const selectedCountry = ref(null)
+const countryLoading = ref(false)
+const detailVisible = ref(false)
+const selectedAttraction = ref(null)
 
 // 初始化
 onMounted(() => {
@@ -74,17 +86,30 @@ const toggleRotation = () => {
   globeViewerRef.value?.toggleRotation()
 }
 
-// 处理位置选择
 const handleLocationSelect = (data) => {
+  if (data.loading) {
+    countryLoading.value = true
+    cardVisible.value = true
+    selectedCountry.value = {
+      name: '加载中…',
+      nameEn: 'Loading',
+      flag: '🌍',
+      attractions: [],
+    }
+    return
+  }
+
+  countryLoading.value = false
+
   if (data.success) {
     selectedCountry.value = data.country
     cardVisible.value = true
 
     ElMessage({
-      message: `发现 ${data.country.name}！`,
+      message: `已加载 ${data.country.name} 标志性目的地（${data.country.attractions?.length || 0} 个）`,
       type: 'success',
       duration: 3000,
-      offset: 100
+      offset: 100,
     })
   } else {
     cardVisible.value = false
@@ -94,7 +119,7 @@ const handleLocationSelect = (data) => {
       message: data.message || '该位置暂无景点数据',
       type: 'warning',
       duration: 3000,
-      offset: 100
+      offset: 100,
     })
   }
 }
@@ -102,16 +127,19 @@ const handleLocationSelect = (data) => {
 // 关闭卡片
 const closeCard = () => {
   cardVisible.value = false
+  countryLoading.value = false
+  globeViewerRef.value?.clearCountryMarker()
 }
 
-// 处理景点选择
+const closeDetail = () => {
+  detailVisible.value = false
+  selectedAttraction.value = null
+}
+
 const handleAttractionSelect = (attraction) => {
-  ElMessage({
-    message: `已选择: ${attraction.name}`,
-    type: 'info',
-    duration: 2000,
-    offset: 100
-  })
+  if (!attraction) return
+  selectedAttraction.value = attraction
+  detailVisible.value = true
 }
 </script>
 

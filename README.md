@@ -4,14 +4,13 @@
 
 ## 📋 项目简介
 
-旅途智览是一个**纯查询与建议工具**，旨在为用户提供全面的景点信息查询、旅游攻略浏览和个性化旅行推荐服务。系统通过网页爬虫从多个旅游平台聚合真实评论，并标注信息来源，帮助用户做出更明智的旅行决策。
+旅途智览是一个**纯查询与建议工具**，旨在为用户提供全面的景点信息查询、旅游攻略浏览和个性化旅行推荐服务。景点数据来自高德地图 POI 与维基媒体等公开来源。
 
 ### 核心特色
 
 - 🔍 **智能搜索** - 多维度景点搜索与筛选（分类、地区、评分）
 - 🤖 **个性推荐** - 基于用户旅游偏好、所在地和签证信息的智能推荐
 - 🌍 **3D地球探索** - 基于 Cesium 和天地图的全景 3D 地球漫游，支持位置反向解析与全球景点发现
-- 🕷️ **评论聚合** - 通过网页爬虫从携程、马蜂窝、去哪儿等平台采集真实评论，**所有评论均标注来源网站**
 - 🛂 **签证管理** - 记录用户签证信息，辅助推荐可直接前往的目的地
 - 📖 **旅游攻略** - 精选旅行攻略浏览与分类查询
 
@@ -40,8 +39,8 @@
 | [uv](https://docs.astral.sh/uv/) | Python 包管理器 |
 | [SQLAlchemy](https://www.sqlalchemy.org/) | ORM |
 | [SQLite](https://www.sqlite.org/) / MySQL | 数据库 |
-| [Scrapy](https://scrapy.org/) / BeautifulSoup | 网页爬虫 |
-| [APScheduler](https://apscheduler.readthedocs.io/) | 定时任务（爬虫调度） |
+| httpx / 高德 Web 服务 | 景点 POI 与坐标 |
+| MediaWiki API | 景点介绍与攻略 |
 
 ---
 
@@ -65,7 +64,6 @@ d:\gcsj_4\
 │   │   ├── user.js                     # 用户接口（登录/注册/偏好/签证）
 │   │   ├── scenic.js                   # 景点接口（列表/详情/搜索/收藏）
 │   │   ├── guide.js                    # 攻略接口（列表/详情/分类）
-│   │   └── review.js                   # 爬虫评论接口（含来源信息）
 │   │
 │   ├── 📂 assets/                      # 静态资源
 │   │   ├── images/                     # 图片资源
@@ -87,7 +85,7 @@ d:\gcsj_4\
 │   │   │   ├── HotScenic.vue           # 热门景点展示
 │   │   │   └── RecommendGuide.vue      # 推荐攻略展示
 │   │   ├── scenic/                     # 景点模块组件
-│   │   │   ├── ScenicCard.vue          # 景点卡片（含评分/价格/评论数）
+│   │   │   ├── ScenicCard.vue          # 景点卡片（含评分/价格）
 │   │   │   ├── ScenicFilter.vue        # 多维筛选器（分类/地区/评分）
 │   │   │   └── ScenicGallery.vue       # 图片画廊（含缩略图和查看器）
 │   │   ├── globe/                      # 3D地球探索组件
@@ -96,8 +94,6 @@ d:\gcsj_4\
 │   │   │   └── LoadingSpinner.vue      # 3D场景加载动画
 │   │   ├── guide/                      # 攻略模块组件
 │   │   │   └── GuideCard.vue           # 攻略卡片
-│   │   ├── review/                     # 评论组件
-│   │   │   └── ReviewList.vue          # 爬虫评论列表（⭐ 标注来源网站）
 │   │   └── user/                       # 用户组件
 │   │       ├── LoginForm.vue           # 登录表单
 │   │       └── RegisterForm.vue        # 注册表单
@@ -133,7 +129,7 @@ d:\gcsj_4\
 │       ├── 📂 front/                   # ── 前台页面 ──
 │       │   ├── HomeView.vue            # 首页（Banner + 搜索 + 热门 + 攻略）
 │       │   ├── ScenicListView.vue      # 景点列表（搜索 + 筛选 + 分页）
-│       │   ├── MapExploreView.vue      # 地图探索（高德地图底图 + 景点详情 + 评论）
+│       │   ├── MapExploreView.vue      # 地图探索（高德地图底图 + 景点详情）
 │       │   ├── GlobeExploreView.vue    # 3D地球探索（Cesium 漫游 + 景点发现）
 │       │   ├── GuideListView.vue       # 攻略列表（分类 + 搜索）
 │       │   ├── GuideDetailView.vue     # 攻略详情（文章 + 相关景点）
@@ -162,8 +158,7 @@ d:\gcsj_4\
     │   │   ├── user.py                 # 用户模型
     │   │   ├── scenic.py               # 景点模型
     │   │   ├── guide.py                # 攻略模型
-    │   │   ├── review.py               # 爬虫评论模型（含来源字段）
-    │   │   ├── favorite.py             # 收藏模型
+│   │   ├── favorite.py             # 收藏模型
     │   │   └── visa.py                 # 签证信息模型
     │   │
     │   ├── 📂 schemas/                 # Pydantic 数据校验
@@ -171,7 +166,6 @@ d:\gcsj_4\
     │   │   ├── user.py
     │   │   ├── scenic.py
     │   │   ├── guide.py
-    │   │   └── review.py
     │   │
     │   ├── 📂 api/                     # API 路由
     │   │   ├── __init__.py
@@ -179,31 +173,23 @@ d:\gcsj_4\
     │   │   ├── user.py                 # 用户接口
     │   │   ├── scenic.py               # 景点接口
     │   │   ├── guide.py                # 攻略接口
-    │   │   ├── review.py               # 评论接口
-    │   │   └── recommend.py            # 推荐接口
+│   │   └── recommend.py            # 推荐接口
     │   │
     │   ├── 📂 services/                # 业务逻辑层
     │   │   ├── __init__.py
     │   │   ├── auth_service.py
     │   │   ├── scenic_service.py
     │   │   ├── guide_service.py
-    │   │   ├── review_service.py
-    │   │   └── recommend_service.py    # 推荐算法
+│   │   └── recommend_service.py    # 推荐算法
     │   │
     │   └── 📂 utils/                   # 工具函数
     │       ├── __init__.py
     │       ├── security.py             # JWT / 密码加密
     │       └── response.py             # 统一响应格式
     │
-    ├── 📂 crawler/                     # 网页爬虫模块
-    │   ├── __init__.py
-    │   ├── base.py                     # 爬虫基类
-    │   ├── ctrip_spider.py             # 携程爬虫
-    │   ├── mafengwo_spider.py          # 马蜂窝爬虫
-    │   ├── qunar_spider.py             # 去哪儿爬虫
-    │   ├── dianping_spider.py          # 大众点评爬虫
-    │   ├── tripadvisor_spider.py       # TripAdvisor 爬虫
-    │   └── scheduler.py               # 爬虫调度器
+    ├── 📂 crawler/                     # 数据采集（高德 / 维基）
+    │   ├── amap_client.py
+    │   └── mediawiki.py
     │
     └── 📂 data/                        # 数据目录
         ├── travel.db                   # SQLite 数据库文件
@@ -281,7 +267,7 @@ npm run build
 | 路由 | 页面 | 说明 |
 |------|------|------|
 | `/` | 首页 | 轮播 Banner、搜索、热门景点、推荐攻略 |
-| `/map` | 地图探索 | 全屏高德地图、周边设施推荐、景点详情与评论 |
+| `/map` | 地图探索 | 全屏高德地图、周边设施推荐、景点详情 |
 | `/globe` | 3D地球 | 全景 3D 地球漫游、位置反向解析与景点发现 |
 | `/guide` | 攻略列表 | 分类浏览、搜索 |
 | `/guide/:id` | 攻略详情 | 文章阅读、相关景点 |
@@ -293,22 +279,6 @@ npm run build
 | `/user/visa` | 签证信息 | 签证增删改查、有效期管理 |
 | `/user/favorites` | 我的收藏 | 收藏的景点列表 |
 
-
----
-
-## 🕷️ 评论爬虫说明
-
-本系统**不提供用户评论功能**，所有评论数据均通过**网页爬虫**从以下平台采集：
-
-| 平台 | 网址 | 说明 |
-|------|------|------|
-| 携程 | ctrip.com | 国内最大旅游平台 |
-| 马蜂窝 | mafengwo.cn | 旅游攻略社区 |
-| 去哪儿 | qunar.com | 旅行搜索引擎 |
-| 大众点评 | dianping.com | 生活服务点评 |
-| TripAdvisor | tripadvisor.com | 国际旅游点评 |
-
-> ⚠️ **重要**：每条评论都会标注**来源网站名称和链接**，确保信息溯源的透明性。
 
 ---
 
@@ -339,8 +309,6 @@ npm run build
 
 - ❌ 酒店预订
 - ❌ 订单管理
-- ❌ 用户发表评论
-- ❌ 评论审核
 - ❌ 后台管理界面
 - ❌ 在线支付
 
@@ -361,12 +329,6 @@ npm run build
 2. 在 `src/router/frontRoutes.js` 中注册路由
 3. 如需 API 交互，在 `src/api/` 下添加接口函数
 4. 如需共享状态，在 `src/stores/` 下创建 Pinia Store
-
-### 新增爬虫流程
-
-1. 在 `server/crawler/` 下新建爬虫类，继承 `base.py` 基类
-2. 在 `server/crawler/scheduler.py` 中注册定时任务
-3. 通过 API 调用爬虫任务
 
 ---
 

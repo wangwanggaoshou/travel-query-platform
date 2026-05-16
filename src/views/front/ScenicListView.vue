@@ -33,7 +33,7 @@
       <!-- 分页 -->
       <el-pagination
         v-if="total > 0"
-        v-model:current-page="currentPage"
+        :current-page="currentPage"
         :page-size="pageSize"
         :total="total"
         layout="total, prev, pager, next, jumper"
@@ -45,11 +45,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
 import SearchBar from '@/components/common/SearchBar.vue'
 import ScenicFilter from '@/components/scenic/ScenicFilter.vue'
 import ScenicCard from '@/components/scenic/ScenicCard.vue'
+import { getScenicList, searchScenic } from '@/api/scenic'
+import { formatScenicList } from '@/utils/categoryLabels'
 
 const route = useRoute()
 const router = useRouter()
@@ -63,9 +66,14 @@ const total = ref(0)
 const filters = ref({})
 
 function handleSearch(kw) {
-  keyword.value = kw
   currentPage.value = 1
-  fetchData()
+  const q = { ...route.query }
+  if (kw && String(kw).trim()) {
+    q.keyword = String(kw).trim()
+  } else {
+    delete q.keyword
+  }
+  router.replace({ path: route.path, query: q })
 }
 
 function handleFilterChange(newFilters) {
@@ -85,11 +93,47 @@ function goToDetail(scenic) {
 
 async function fetchData() {
   loading.value = true
-  // TODO: 调用 API 获取数据
-  loading.value = false
+  try {
+    const params = {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      ...filters.value,
+    }
+    const res = keyword.value
+      ? await searchScenic({
+          keyword: keyword.value,
+          discover: true,
+          ...params,
+        })
+      : await getScenicList(params)
+    scenicList.value = formatScenicList(res.data?.list || [])
+    total.value = res.data?.total || 0
+    if (res.data?.discoveredNew) {
+      ElMessage.success({
+        message: '未在库中找到完全匹配项，已通过高德与公开资料聚合景点并入库。',
+        duration: 5000,
+      })
+    }
+  } catch (error) {
+    console.error('获取景点列表失败:', error)
+    scenicList.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
+  if (route.query.category) {
+    filters.value = { ...filters.value, category: route.query.category }
+  }
+  keyword.value = route.query.keyword ? String(route.query.keyword) : ''
+  fetchData()
+})
+
+onBeforeRouteUpdate((to) => {
+  keyword.value = to.query.keyword ? String(to.query.keyword) : ''
+  currentPage.value = 1
   fetchData()
 })
 </script>

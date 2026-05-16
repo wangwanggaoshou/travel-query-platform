@@ -5,7 +5,7 @@
     <!-- 提示信息 -->
     <div class="hint glass-dark">
       <el-icon><Pointer /></el-icon>
-      <span>点击地图任意位置查看景点</span>
+      <span>点击地图探索各国标志性目的地（每国最多 5 个）</span>
     </div>
   </div>
 </template>
@@ -28,6 +28,12 @@ let viewer = null
 const autoRotate = ref(false)
 let rotationInterval = null
 let clickHandler = null
+let countryMarkerEntity = null
+
+/** 国家点击防抖：加载中忽略；两次有效点击间隔 */
+const COUNTRY_CLICK_DEBOUNCE_MS = 800
+let countryLoadInProgress = false
+let lastCountryClickAt = 0
 
 // 初始化 Cesium 地球
 const initCesium = async () => {
@@ -116,76 +122,108 @@ const addClickHandler = () => {
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas)
 
   handler.setInputAction(async (click) => {
+    if (countryLoadInProgress) return
+
+    const now = Date.now()
+    if (now - lastCountryClickAt < COUNTRY_CLICK_DEBOUNCE_MS) return
+    lastCountryClickAt = now
+
     const cartesian = viewer.camera.pickEllipsoid(click.position)
+    if (!cartesian) return
 
-    if (cartesian) {
-      showClickAnimation(click.position)
+    const cartographic = Cesium.Cartographic.fromCartesian(cartesian)
+    const longitude = Cesium.Math.toDegrees(cartographic.longitude)
+    const latitude = Cesium.Math.toDegrees(cartographic.latitude)
 
-      const cartographic = Cesium.Cartographic.fromCartesian(cartesian)
-      const longitude = Cesium.Math.toDegrees(cartographic.longitude)
-      const latitude = Cesium.Math.toDegrees(cartographic.latitude)
+    countryLoadInProgress = true
+    setCountryMarker(cartesian, { loading: true })
+    props.onLocationSelect({
+      loading: true,
+      longitude,
+      latitude,
+    })
 
+    try {
       const result = await reverseGeocode(longitude, latitude)
 
       if (result.success) {
+        setCountryMarker(cartesian, {
+          loading: false,
+          label: result.country?.name || '已选国家',
+        })
         props.onLocationSelect({
           success: true,
           country: result.country,
           longitude,
-          latitude
+          latitude,
         })
-        addMarker(cartesian)
       } else {
+        clearCountryMarker()
         props.onLocationSelect({
           success: false,
           message: result.message,
           longitude,
-          latitude
+          latitude,
         })
       }
+    } catch {
+      clearCountryMarker()
+      props.onLocationSelect({
+        success: false,
+        message: '加载失败，请稍后重试',
+        longitude,
+        latitude,
+      })
+    } finally {
+      countryLoadInProgress = false
     }
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
 
   clickHandler = handler
 }
 
-// 显示点击动画
-const showClickAnimation = (position) => {
-  const element = document.createElement('div')
-  element.className = 'click-ripple'
-  element.style.left = position.x + 'px'
-  element.style.top = position.y + 'px'
-  document.body.appendChild(element)
+/** 点击位置上方：加载中或国家名称（无黄色光点/波纹） */
+const setCountryMarker = (position, { loading, label = '' }) => {
+  if (!viewer) return
 
-  setTimeout(() => {
-    element.remove()
-  }, 600)
-}
+  if (countryMarkerEntity) {
+    viewer.entities.remove(countryMarkerEntity)
+    countryMarkerEntity = null
+  }
 
-// 添加标记点
-const addMarker = (position) => {
-  viewer.entities.removeAll()
+  const text = loading ? '加载中…' : label
+  if (!text) return
 
-  viewer.entities.add({
-    position: position,
-    point: {
-      pixelSize: 12,
-      color: Cesium.Color.fromCssColorString('#c8a951'),
-      outlineColor: Cesium.Color.WHITE,
-      outlineWidth: 2,
-      scaleByDistance: new Cesium.NearFarScalar(1.5e2, 2.0, 1.5e7, 0.5)
-    },
+  countryMarkerEntity = viewer.entities.add({
+    position,
     label: {
-      text: '选中位置',
-      font: '14px sans-serif',
-      fillColor: Cesium.Color.WHITE,
+      text,
+      font: loading ? 'bold 14px sans-serif' : '14px sans-serif',
+      fillColor: loading
+        ? Cesium.Color.fromCssColorString('#e2e8f0')
+        : Cesium.Color.WHITE,
       outlineColor: Cesium.Color.BLACK,
       outlineWidth: 2,
       style: Cesium.LabelStyle.FILL_AND_OUTLINE,
       verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-      pixelOffset: new Cesium.Cartesian2(0, -10)
-    }
+      pixelOffset: new Cesium.Cartesian2(0, -8),
+      showBackground: true,
+      backgroundColor: loading
+        ? Cesium.Color.fromCssColorString('rgba(15, 23, 42, 0.88)')
+        : Cesium.Color.fromCssColorString('rgba(17, 24, 39, 0.75)'),
+      backgroundPadding: new Cesium.Cartesian2(10, 6),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    },
   })
+  viewer.scene.requestRender()
+}
+
+const clearCountryMarker = () => {
+  if (viewer && countryMarkerEntity) {
+    viewer.entities.remove(countryMarkerEntity)
+    countryMarkerEntity = null
+    viewer.scene.requestRender()
+  }
 }
 
 // 优化视觉效果与性能
@@ -237,6 +275,8 @@ onUnmounted(() => {
   if (clickHandler) {
     clickHandler.destroy()
   }
+  countryMarkerEntity = null
+  countryLoadInProgress = false
   if (viewer) {
     viewer.destroy()
   }
@@ -245,7 +285,8 @@ onUnmounted(() => {
 // 暴露方法给父组件调用
 defineExpose({
   resetView,
-  toggleRotation
+  toggleRotation,
+  clearCountryMarker,
 })
 </script>
 
@@ -290,26 +331,6 @@ defineExpose({
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
-  }
-}
-
-/* 点击波纹效果 */
-:global(.click-ripple) {
-  position: fixed;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(200, 169, 81, 0.6);
-  transform: translate(-50%, -50%) scale(1);
-  pointer-events: none;
-  animation: ripple 0.6s ease-out;
-  z-index: 9999;
-}
-
-@keyframes ripple {
-  to {
-    transform: translate(-50%, -50%) scale(4);
-    opacity: 0;
   }
 }
 

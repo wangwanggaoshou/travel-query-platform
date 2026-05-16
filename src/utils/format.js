@@ -37,14 +37,6 @@ export function formatPrice(price, currency = '¥') {
 }
 
 /**
- * 格式化评分
- * @param {number} score - 评分 (0-5)
- */
-export function formatScore(score) {
-  return Number(score).toFixed(1)
-}
-
-/**
  * 截取文本
  * @param {string} text - 文本
  * @param {number} length - 最大长度

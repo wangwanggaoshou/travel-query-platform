@@ -1,74 +1,75 @@
 /**
- * 地理编码工具
- * 提供逆地理编码功能（根据坐标获取国家信息）
+ * 地理编码 — 按国家获取标志性旅游目的地（最多 5 个）
  */
+import { identifyCountry } from '@/utils/countryBounds.js'
+import { getGlobeLandmarks, resolveGlobeCountry } from '@/api/globe'
 
-import { GEOCODER_CONFIG } from '@/config/cesium.config.js'
-import { identifyCountry as mockIdentify, getCountryAttractions as mockGetAttractions } from '@/data/attractions.js'
+const MAX_ATTRACTIONS = 5
 
-/**
- * 逆地理编码 - 根据坐标获取位置信息
- */
-export async function reverseGeocode(longitude, latitude) {
-  if (GEOCODER_CONFIG.provider === 'api') {
-    return await reverseGeocodeAPI(longitude, latitude)
-  }
-  return reverseGeocodeMock(longitude, latitude)
-}
-
-/**
- * Mock 逆地理编码
- */
-function reverseGeocodeMock(longitude, latitude) {
-  const countryName = mockIdentify(longitude, latitude)
-
-  if (!countryName) {
-    return {
-      success: false,
-      message: '该位置暂不支持，目前仅支持热门旅游国家',
-      longitude,
-      latitude
-    }
-  }
-
-  const countryData = mockGetAttractions(countryName)
+function mapCountryResponse(data, longitude, latitude) {
+  const attractions = (data.attractions || []).slice(0, MAX_ATTRACTIONS).map((item) => ({
+    id: item.id,
+    name: item.name,
+    nameEn: item.nameEn,
+    location: item.location,
+    description: item.description,
+    image: item.image,
+    images: item.images || (item.image ? [item.image] : []),
+    type: item.type || 'landmark',
+    guideTopic: item.guideTopic || `${item.name}旅游攻略`,
+    guideCategory: item.guideCategory || 'city',
+    isGlobe: true,
+  }))
 
   return {
     success: true,
-    country: countryData,
+    country: {
+      key: data.key,
+      name: data.name,
+      nameEn: data.nameEn,
+      flag: data.flag,
+      attractions,
+    },
     longitude,
-    latitude
+    latitude,
   }
 }
 
-/**
- * API 逆地理编码（预留接口）
- */
-async function reverseGeocodeAPI(longitude, latitude) {
+export async function reverseGeocode(longitude, latitude) {
+  const countryKey = identifyCountry(longitude, latitude)
+
   try {
-    console.warn('API 模式未配置，降级使用 mock 数据')
-    return reverseGeocodeMock(longitude, latitude)
+    let res
+    if (countryKey) {
+      res = await getGlobeLandmarks(countryKey)
+    } else {
+      res = await resolveGlobeCountry(longitude, latitude)
+    }
+
+    if (res.code !== 200 || !res.data?.attractions?.length) {
+      return {
+        success: false,
+        message: res.message || '该国家/地区暂未收录标志性目的地，请尝试其他区域',
+        longitude,
+        latitude,
+      }
+    }
+
+    return mapCountryResponse(res.data, longitude, latitude)
   } catch (error) {
-    console.error('逆地理编码 API 调用失败:', error)
+    console.error('获取全球目的地失败:', error)
     return {
       success: false,
-      message: '获取位置信息失败',
+      message: '获取目的地数据失败，请确认后端服务已启动',
       longitude,
       latitude,
-      error: error.message
+      error: error.message,
     }
   }
 }
 
-/**
- * 获取最近的热门景点
- */
 export async function getNearbyAttractions(longitude, latitude, limit = 5) {
   const result = await reverseGeocode(longitude, latitude)
-
-  if (!result.success) {
-    return []
-  }
-
+  if (!result.success) return []
   return result.country.attractions.slice(0, limit)
 }

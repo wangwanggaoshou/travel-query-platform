@@ -20,7 +20,7 @@
         </router-link>
         <router-link to="/guide" class="nav-link" active-class="active">
           <el-icon><Reading /></el-icon>
-          <span>旅游攻略</span>
+          <span>AI 攻略</span>
         </router-link>
         <router-link to="/recommend" class="nav-link" active-class="active">
           <el-icon><MagicStick /></el-icon>
@@ -35,60 +35,17 @@
           <span>3D地球</span>
         </router-link>
       </nav>
-
-      <!-- 用户区域 -->
-      <div class="header-actions">
-        <template v-if="userStore.isLoggedIn">
-          <el-dropdown trigger="click">
-            <div class="user-trigger">
-              <el-avatar :size="34" icon="UserFilled" />
-              <span class="user-name">{{ userStore.username }}</span>
-              <el-icon><ArrowDown /></el-icon>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item @click="$router.push('/user/profile')">
-                  <el-icon><User /></el-icon>个人信息
-                </el-dropdown-item>
-                <el-dropdown-item @click="$router.push('/user/preferences')">
-                  <el-icon><Setting /></el-icon>旅游偏好
-                </el-dropdown-item>
-                <el-dropdown-item @click="$router.push('/user/favorites')">
-                  <el-icon><Star /></el-icon>我的收藏
-                </el-dropdown-item>
-                <el-dropdown-item divided @click="handleLogout">
-                  <el-icon><SwitchButton /></el-icon>退出登录
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </template>
-        <template v-else>
-          <el-button class="btn-login" round @click="$router.push('/login')">
-            登录
-          </el-button>
-        </template>
-      </div>
     </div>
   </header>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
 
-const router = useRouter()
-const userStore = useUserStore()
 const isScrolled = ref(false)
 
 function handleScroll() {
   isScrolled.value = window.scrollY > 20
-}
-
-function handleLogout() {
-  userStore.logout()
-  router.push('/')
 }
 
 onMounted(() => window.addEventListener('scroll', handleScroll))
@@ -114,8 +71,12 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 .header-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: clamp(24px, 4vw, 56px);
   height: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 var(--content-padding);
 }
 
 /* Logo */
@@ -149,14 +110,16 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 .header-nav {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -197,43 +160,30 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   transform: scaleX(1);
 }
 
-/* 用户区域 */
-.header-actions {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
+@media (max-width: 900px) {
+  .header-container {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
 
-.user-trigger {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  cursor: pointer;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  transition: background var(--transition-fast);
-}
+  .app-header {
+    height: auto;
+    min-height: 64px;
+  }
 
-.user-trigger:hover {
-  background: var(--color-bg-card-hover);
-}
+  .header-nav {
+    padding-bottom: 4px;
+  }
 
-.user-name {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
+  .nav-link span {
+    display: none;
+  }
 
-.btn-login {
-  background: transparent;
-  border: 1px solid var(--color-gold-border);
-  color: var(--color-gold);
-  font-weight: 500;
-}
-
-.btn-login:hover {
-  background: var(--color-gold-bg);
-  border-color: var(--color-gold);
-  color: var(--color-gold);
+  .nav-link {
+    padding: 8px 10px;
+  }
 }
 </style>

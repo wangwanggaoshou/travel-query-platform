@@ -40,7 +40,7 @@ export const TIANDITU_CONFIG = {
 // 地理编码配置
 export const GEOCODER_CONFIG = {
   // 使用哪个地理编码服务：'mock' | 'api'
-  provider: 'mock',
+  provider: 'api',
 
   // API 配置（后续替换为真实 API）
   api: {

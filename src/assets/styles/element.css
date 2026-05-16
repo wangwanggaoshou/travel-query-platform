@@ -367,25 +367,35 @@
    Message 消息提示 (暗色)
    ======================================================================================== */
 .el-message {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
+  --el-message-bg-color: var(--color-bg-elevated);
+  --el-message-border-color: var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
+  margin-top: 64px !important;
 }
 
 .el-message--success {
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.08);
+  --el-message-bg-color: var(--color-bg-elevated);
+  --el-message-border-color: rgba(34, 197, 94, 0.45);
+  --el-message-text-color: var(--color-success);
 }
 
 .el-message--error {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.08);
+  --el-message-bg-color: var(--color-bg-elevated);
+  --el-message-border-color: rgba(239, 68, 68, 0.45);
+  --el-message-text-color: var(--color-danger);
 }
 
 .el-message--warning {
-  border-color: rgba(245, 158, 11, 0.3);
-  background: rgba(245, 158, 11, 0.08);
+  --el-message-bg-color: var(--color-bg-elevated);
+  --el-message-border-color: rgba(245, 158, 11, 0.45);
+  --el-message-text-color: var(--color-warning);
+}
+
+.el-message--info {
+  --el-message-bg-color: var(--color-bg-elevated);
+  --el-message-border-color: var(--color-gold-border);
+  --el-message-text-color: var(--color-text-secondary);
 }
 
 /* ========================================================================================
