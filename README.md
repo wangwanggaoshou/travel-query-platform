@@ -1,22 +1,22 @@
-# 🌏 旅途智览 - 旅游查询与建议系统
+# 旅途智览 - 旅游查询与建议系统
 
 > 基于 Vue 3 + Element Plus + Python FastAPI 的旅游信息查询与智能推荐平台
 
-## 📋 项目简介
+## 项目简介
 
 旅途智览是一个**纯查询与建议工具**，旨在为用户提供全面的景点信息查询、旅游攻略浏览和个性化旅行推荐服务。景点数据来自高德地图 POI 与维基媒体等公开来源。
 
 ### 核心特色
 
-- 🔍 **智能搜索** - 多维度景点搜索与筛选（分类、地区、评分）
-- 🗺️ **地图探索** - 高德地图集成，查看景点坐标与周边设施
-- 🌍 **3D地球探索** - 基于 Cesium 和天地图的全景 3D 地球漫游
-- 🤖 **AI 攻略生成** - 通过 AI Agent 自动生成旅游攻略
-- 💡 **智能推荐** - 根据出发地、预算与天数推荐合适目的地
+- **智能搜索** - 多维度景点搜索与筛选（分类、地区、评分），支持爬虫聚合扩展
+- **地图探索** - 高德地图集成，查看景点坐标与周边设施
+- **3D地球探索** - 基于 Cesium 和天地图的全景 3D 地球漫游，全球地标发现
+- **AI 攻略生成** - 通过 AI Agent 自动生成旅游攻略，支持联网搜索
+- **智能推荐** - AI Agent 根据出发地、预算、天数、旅行风格推荐合适目的地
 
 ---
 
-## 🏗️ 技术架构
+## 技术架构
 
 ### 前端技术栈
 
@@ -37,112 +37,64 @@
 
 ---
 
-## 📁 项目结构
+## 项目结构
 
 ```
 D:\gcsj_4\
 │
-├── 📂 front-end/                       # ===== 前端项目 =====
-│   ├── 📄 README.md                    # 前端说明文档（本文件）
-│   ├── 📄 index.html                   # 入口 HTML
-│   ├── 📄 package.json                 # 依赖配置
-│   ├── 📄 vite.config.js               # Vite 构建配置
-│   ├── 📄 .gitignore                   # Git 忽略配置
+├── front-end/                       # 前端项目
+│   ├── README.md                    # 前端说明文档（本文件）
+│   ├── API.md                       # API 接口文档
+│   ├── index.html                   # 入口 HTML
+│   ├── package.json                 # 依赖配置
+│   ├── vite.config.js               # Vite 构建配置
 │   │
-│   └──── 📂 src/                       # 源码目录
-│       ├── main.js                     # 应用入口
-│       ├── App.vue                     # 根组件
+│   └── src/                         # 源码目录
+│       ├── main.js                  # 应用入口
+│       ├── App.vue                  # 根组件
 │       │
-│       ├── 📂 api/                     # API 接口层
-│       │   ├── index.js                # 统一导出
-│       │   ├── scenic.js               # 景点接口（列表/详情/搜索/推荐）
-│       │   ├── guide.js                # 攻略接口（AI Agent 生成）
-│       │   └── globe.js                # 3D地球接口（地标/地理解析）
+│       ├── api/                     # API 接口层
+│       │   ├── index.js             # 统一导出
+│       │   ├── scenic.js            # 景点接口（列表/详情/搜索/推荐/AI Agent）
+│       │   ├── guide.js             # 攻略接口（AI Agent 状态/生成）
+│       │   └── globe.js             # 3D地球接口（国家/地标/坐标解析/图片）
 │       │
-│       ├── 📂 assets/                  # 静态资源
-│       │   ├── hero.png                # 首页横幅图片
-│       │   ├── vite.svg                # Vite Logo
-│       │   ├── vue.svg                 # Vue Logo
-│       │   └── 📂 styles/              # 全局样式
-│       │       ├── index.css           # 样式入口
-│       │       ├── variables.css       # CSS 设计变量
-│       │       ├── reset.css           # 浏览器样式重置
-│       │       ├── element.css         # Element Plus 主题覆盖
-│       │       └── amap.css            # 高德地图样式覆盖
+│       ├── assets/                  # 静态资源
+│       │   ├── hero.png             # 首页横幅图片
+│       │   └── styles/              # 全局样式（可选）
 │       │
-│       ├── 📂 components/              # 公共组件
-│       │   ├── 📂 common/              # 通用组件
-│       │   │   ├── AppHeader.vue       # 顶部导航栏
-│       │   │   ├── AppBreadcrumb.vue   # 面包屑导航
-│       │   │   └── SearchBar.vue       # 搜索栏
-│       │   ├── 📂 home/                # 首页组件
-│       │   │   ├── HeroBanner.vue      # 首页横幅
-│       │   │   ├── HotScenic.vue       # 热门景点展示
-│       │   │   └── FeaturedCarousel.vue # 精选轮播
-│       │   ├── 📂 scenic/              # 景点组件
-│       │   │   ├── ScenicCard.vue      # 景点卡片
-│       │   │   ├── ScenicFilter.vue    # 筛选器
-│       │   │   └ ScenicGallery.vue     # 图片画廊
-│       │   ├── 📂 globe/               # 3D地球组件
-│       │   │   ├── GlobeViewer.vue     # 地球查看器（Cesium）
-│       │   │   ├── AttractionCard.vue  # 景点卡片
-│       │   │   ├── GlobeAttractionDetail.vue # 景点详情面板
-│       │   │   └── LoadingSpinner.vue  # 加载动画
-│       │   └── 📂 guide/               # 攻略组件
-│       │       └── GuideCard.vue       # 攻略卡片
+│       ├── components/              # 公共组件
+│       │   ├── common/              # AppHeader / AppBreadcrumb / SearchBar
+│       │   ├── home/                # HeroBanner / HotScenic / FeaturedCarousel
+│       │   ├── scenic/              # ScenicCard / ScenicFilter / ScenicGallery
+│       │   ├── globe/               # GlobeViewer / AttractionCard / GlobeAttractionDetail
+│       │   └── guide/               # GuideCard
 │       │
-│       ├── 📂 composables/             # 组合式函数
-│       │   ├── useSearch.js            # 搜索逻辑（含防抖）
-│       │   └── usePagination.js        # 分页逻辑
+│       ├── composables/             # useSearch / usePagination
 │       │
-│       ├── 📂 config/                  # 配置文件
-│       │   ├── amap.config.js          # 高德地图配置
-│       │   └── cesium.config.js        # Cesium/天地图配置
+│       ├── config/                  # amap.config.js / cesium.config.js
 │       │
-│       ├── 📂 constants/               # 常量定义
-│       │   └ departureCities.js       # 出发城市列表
+│       ├── constants/               # departureCities.js
 │       │
-│       ├── 📂 layouts/                 # 页面布局
-│       │   └── FrontLayout.vue         # 前台布局
+│       ├── layouts/                 # FrontLayout.vue
 │       │
-│       ├── 📂 router/                  # 路由配置
-│       │   ├── index.js                # 路由主文件
-│       │   └── frontRoutes.js          # 前台路由定义
+│       ├── router/                  # index.js / frontRoutes.js
 │       │
-│       ├── 📂 stores/                  # Pinia 状态管理
-│       │   ├── index.js                # Store 导出
-│       │   ├── scenic.js               # 景点状态
-│       │   └── app.js                  # 全局状态
+│       ├── stores/                  # scenic.js / app.js
 │       │
-│       ├── 📂 utils/                   # 工具函数
-│       │   ├── request.js              # Axios 实例封装
-│       │   ├── format.js               # 格式化工具
-│       │   ├── validate.js             # 表单验证规则
-│       │   ├── categoryLabels.js       # 分类标签映射
-│       │   ├── scenicImage.js          # 景点图片处理
-│       │   ├── amapPoi.js              # 高德 POI 工具
-│       │   ├── recentGuides.js         # 最近攻略缓存
-│       │   ├── countryBounds.js        # 国家边界数据
-│       │   └── geocoder.js              # 地理编码工具
+│       ├── utils/                   # request / format / validate / amapPoi / geocoder 等
 │       │
-│       └── 📂 views/                   # 页面视图
-│           ├── NotFound.vue            # 404 页面
-│           └── 📂 front/               # 前台页面
-│               ├── HomeView.vue        # 首页
-│               ├── ScenicListView.vue  # 景点列表
-│               ├── MapExploreView.vue  # 地图探索
-│               ├── GlobeExploreView.vue # 3D地球探索
-│               ├── GuideListView.vue   # 攻略列表
-│               ├── GuideDetailView.vue # 攻略详情
-│               └ RecommendView.vue    # 智能推荐
+│       └── views/                   # 页面视图
+│           ├── NotFound.vue         # 404 页面
+│           └── front/               # HomeView / ScenicListView / MapExploreView / GlobeExploreView / GuideListView / GuideDetailView / RecommendView
 │
-└── 📂 back-end/                        # ===== 后端项目 =====
-    └── 📄 README.md                    # 后端说明文档
+└── back-end/                        # 后端项目
+    └── README.md                    # 后端说明文档
 ```
 
 ---
 
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
 
@@ -194,7 +146,7 @@ npm run build
 
 ---
 
-## 📄 页面路由
+## 页面路由
 
 | 路由 | 页面 | 说明 |
 |------|------|------|
@@ -204,11 +156,11 @@ npm run build
 | `/globe` | 3D地球 | Cesium 地球漫游、全球地标发现 |
 | `/guide` | AI 攻略 | 攻略列表、AI Agent 生成 |
 | `/guide/:id` | 攻略详情 | 文章阅读、相关景点 |
-| `/recommend` | 智能推荐 | 根据出发地、预算、天数推荐 |
+| `/recommend` | 智能推荐 | AI Agent 根据出发地、预算、天数推荐 |
 
 ---
 
-## 🔑 API 密钥配置
+## API 密钥配置
 
 ### 高德地图 (2D 地图探索)
 
@@ -219,21 +171,21 @@ npm run build
 ### Cesium & 天地图 (3D 地球探索)
 
 - 配置文件：`src/config/cesium.config.js`
-- 天地图 Token 已内置（`91cc78d5c861104952a1fb36c31936eb`）
+- 天地图 Token 已内置
 - 可替换为自己的天地图开发者密钥
 
 ---
 
-## 🎨 设计规范
+## 设计规范
 
 ### 主色调
 
 | 颜色 | 色值 | 用途 |
 |------|------|------|
-| 🟡 Gold | `#c8a951` | 主色调 - 金色奢华感 |
-| 🟡 Gold Light | `#e5d4a1` | 金色高亮 |
-| 🔵 Teal | `#0d9488` | 辅助色 - 青色 |
-| 🌑 Deep | `#0a0f1a` | 深色背景 |
+| Gold | `#c8a951` | 主色调 - 金色奢华感 |
+| Gold Light | `#e5d4a1` | 金色高亮 |
+| Teal | `#0d9488` | 辅助色 - 青色 |
+| Deep | `#0a0f1a` | 深色背景 |
 
 ### 设计特色
 
@@ -245,19 +197,19 @@ npm run build
 
 ---
 
-## 📌 功能边界说明
+## 功能边界说明
 
 本系统是**纯查询与建议工具**，以下功能**不在范围内**：
 
-- ❌ 用户登录/注册系统
-- ❌ 酒店预订
-- ❌ 订单管理
-- ❌ 后台管理界面
-- ❌ 在线支付
+- 用户登录/注册系统（后端已预留接口，前端未实现）
+- 酒店预订
+- 订单管理
+- 后台管理界面
+- 在线支付
 
 ---
 
-## 🔧 开发指南
+## 开发指南
 
 ### 代码规范
 
@@ -275,6 +227,6 @@ npm run build
 
 ---
 
-## 📝 许可证
+## 许可证
 
 本项目为毕业设计/课程设计项目，仅供学习交流使用。
