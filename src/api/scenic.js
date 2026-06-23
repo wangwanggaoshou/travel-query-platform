@@ -34,3 +34,7 @@ export function getRecommendAgentStatus() {
 export function postRecommendAgent(data) {
   return request.post('/scenic/recommend/agent', data, { timeout: 120000 })
 }
+
+export function postRecommendAgentMore(data) {
+  return request.post('/scenic/recommend/agent/more', data, { timeout: 120000 })
+}

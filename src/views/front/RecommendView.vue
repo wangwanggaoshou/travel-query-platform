@@ -4,7 +4,7 @@
       <div class="page-header">
         <h1 class="page-title gradient-text">智能推荐</h1>
         <p class="page-desc">
-          结合出发地、预算与出行天数，AI 为您精选最多 3 处景点并说明推荐理由
+          结合出发地、预算与出行天数，AI 将为您精选合适的景点并说明推荐理由
         </p>
         <div class="agent-status">
           <el-tag v-if="agentReady" type="success" size="small" effect="plain">Agent 已就绪</el-tag>
@@ -131,6 +131,48 @@
                 <h4 class="intro-label">景点介绍</h4>
                 <p class="intro-text">{{ item.description }}</p>
               </section>
+              <!-- 行程预案 -->
+              <section v-if="item.tripPlan" class="trip-plan">
+                <h4 class="intro-label trip-plan-title">📋 行程预案</h4>
+                <div class="trip-plan-grid">
+                  <div v-if="item.tripPlan.transportation" class="trip-plan-item">
+                    <span class="trip-plan-icon">🚗</span>
+                    <div class="trip-plan-content">
+                      <span class="trip-plan-key">出行方式</span>
+                      <span v-if="item.tripPlan.transportation.mode">{{ item.tripPlan.transportation.mode }}</span>
+                      <span v-if="item.tripPlan.transportation.duration">，{{ item.tripPlan.transportation.duration }}</span>
+                      <span v-if="item.tripPlan.transportation.costEstimate">，{{ item.tripPlan.transportation.costEstimate }}</span>
+                    </div>
+                  </div>
+                  <div v-if="item.tripPlan.weather" class="trip-plan-item">
+                    <span class="trip-plan-icon">🌤️</span>
+                    <div class="trip-plan-content">
+                      <span class="trip-plan-key">天气</span>
+                      <span>{{ item.tripPlan.weather }}</span>
+                    </div>
+                  </div>
+                  <div v-if="item.tripPlan.clothing" class="trip-plan-item">
+                    <span class="trip-plan-icon">👔</span>
+                    <div class="trip-plan-content">
+                      <span class="trip-plan-key">穿搭建议</span>
+                      <span>{{ item.tripPlan.clothing }}</span>
+                    </div>
+                  </div>
+                  <div v-if="item.tripPlan.accommodation" class="trip-plan-item">
+                    <span class="trip-plan-icon">🏨</span>
+                    <div class="trip-plan-content">
+                      <span class="trip-plan-key">住宿建议</span>
+                      <span>{{ item.tripPlan.accommodation }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="item.tripPlan.itinerary && item.tripPlan.itinerary.length" class="trip-plan-itinerary">
+                  <span class="trip-plan-key">📅 日程安排</span>
+                  <ul class="itinerary-list">
+                    <li v-for="(day, idx) in item.tripPlan.itinerary" :key="idx">{{ day }}</li>
+                  </ul>
+                </div>
+              </section>
               <div class="recommend-actions">
                 <el-button
                   type="primary"
@@ -149,6 +191,25 @@
           v-if="!loading && recommendations.length === 0 && hasSearched"
           description="暂无推荐结果，请调整出发地、标签、预算或行程天数后重试"
         />
+
+        <!-- 更多推荐 -->
+        <div v-if="recommendations.length > 0" class="more-recommend">
+          <div v-if="noMoreResults" class="more-tip">
+            <el-divider>已无更多推荐</el-divider>
+            <p class="more-tip-text">当前条件下暂无更多匹配景点，可调整需求后重新搜索</p>
+          </div>
+          <el-button
+            v-else
+            type="default"
+            :loading="loadingMore"
+            :disabled="loadingMore"
+            class="more-btn"
+            @click="getMoreRecommendations"
+          >
+            <el-icon><RefreshRight /></el-icon>
+            更多推荐
+          </el-button>
+        </div>
       </div>
     </div>
   </div>
@@ -158,12 +219,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ScenicCard from '@/components/scenic/ScenicCard.vue'
-import { getRecommendAgentStatus, postRecommendAgent } from '@/api/scenic'
+import { getRecommendAgentStatus, postRecommendAgent, postRecommendAgentMore } from '@/api/scenic'
 import { getGuideAgentStatus } from '@/api/guide'
 import { formatScenicList, SCENIC_CATEGORY_LABELS } from '@/utils/categoryLabels'
 import { DEPARTURE_CITIES } from '@/constants/departureCities'
 import { ElMessage } from 'element-plus'
-import { Document } from '@element-plus/icons-vue'
+import { Document, RefreshRight } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -179,6 +240,9 @@ const selectedTypes = ref([])
 const customPrompt = ref('')
 const budget = ref([0, 10000])
 const days = ref(5)
+const loadingMore = ref(false)
+const noMoreResults = ref(false)
+const lastSearchParams = ref(null)
 
 const travelTypes = [
   '自然风光',
@@ -268,8 +332,9 @@ async function getRecommendations() {
   loading.value = true
   hasSearched.value = true
   resultSummary.value = ''
+  noMoreResults.value = false
   try {
-    const res = await postRecommendAgent({
+    const params = {
       departureCity: departureCity.value.trim(),
       travelStyles: selectedTypes.value,
       budgetMin: budget.value[0],
@@ -277,7 +342,10 @@ async function getRecommendations() {
       days: days.value,
       customPrompt: customPrompt.value.trim() || undefined,
       limit: 3,
-    })
+    }
+    lastSearchParams.value = params
+
+    const res = await postRecommendAgent(params)
 
     recommendations.value = (res.data?.list || []).map((raw) => {
       const formatted = formatScenicList([raw])[0]
@@ -294,12 +362,49 @@ async function getRecommendations() {
       )
     } else {
       ElMessage.info('暂无推荐结果，请调整条件后重试')
+      noMoreResults.value = true
     }
   } catch (error) {
     console.error('获取推荐失败:', error)
     recommendations.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function getMoreRecommendations() {
+  if (!lastSearchParams.value || loadingMore.value) return
+  loadingMore.value = true
+  const excludeIds = recommendations.value.map((item) => item.id)
+  try {
+    const res = await postRecommendAgentMore({
+      ...lastSearchParams.value,
+      excludeIds,
+    })
+
+    const newList = (res.data?.list || []).map((raw) => {
+      const formatted = formatScenicList([raw])[0]
+      return { ...formatted, categoryRaw: raw.category }
+    })
+
+    if (newList.length > 0) {
+      recommendations.value = [...recommendations.value, ...newList]
+      const fromDb = res.data?.fromDatabase ?? 0
+      const fromWeb = res.data?.fromWeb ?? 0
+      ElMessage.success(
+        fromWeb > 0
+          ? `再推荐 ${newList.length} 处（库内 ${fromDb}，新入库 ${fromWeb}）`
+          : `再推荐 ${newList.length} 处景点`
+      )
+    } else {
+      noMoreResults.value = true
+      ElMessage.info('当前条件下暂无更多匹配景点')
+    }
+  } catch (error) {
+    console.error('获取更多推荐失败:', error)
+    ElMessage.error('获取更多推荐失败，请稍后重试')
+  } finally {
+    loadingMore.value = false
   }
 }
 
@@ -466,10 +571,93 @@ onMounted(() => {
   line-height: 1.8;
 }
 
+/* 行程预案 */
+.trip-plan {
+  border-left: 3px solid var(--color-primary);
+  padding-left: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.trip-plan-title {
+  color: var(--color-primary) !important;
+  margin-bottom: var(--spacing-md);
+}
+
+.trip-plan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm) var(--spacing-lg);
+}
+
+.trip-plan-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.trip-plan-icon {
+  flex-shrink: 0;
+  font-size: var(--font-size-base);
+}
+
+.trip-plan-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--spacing-xs);
+}
+
+.trip-plan-key {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-right: var(--spacing-xs);
+}
+
+.trip-plan-itinerary {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px dashed var(--color-border-light);
+}
+
+.itinerary-list {
+  margin: var(--spacing-xs) 0 0;
+  padding-left: var(--spacing-lg);
+  list-style: disc;
+}
+
+.itinerary-list li {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+  padding: 2px 0;
+}
+
 .recommend-actions {
   margin-top: var(--spacing-md);
   padding-top: var(--spacing-md);
   border-top: 1px solid var(--color-border-light);
+}
+
+.more-recommend {
+  text-align: center;
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-md);
+}
+
+.more-btn {
+  min-width: 180px;
+}
+
+.more-tip {
+  color: var(--color-text-secondary);
+}
+
+.more-tip-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-sm);
 }
 
 @media (max-width: 768px) {
@@ -482,6 +670,10 @@ onMounted(() => {
     max-width: none;
     border-right: none;
     border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .trip-plan-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
