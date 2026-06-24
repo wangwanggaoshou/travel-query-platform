@@ -112,81 +112,159 @@
       </div>
 
       <div class="recommend-results" v-loading="loading">
-        <h2 v-if="recommendations.length" class="section-title">为您推荐</h2>
-        <div class="recommend-list">
-          <div v-for="item in recommendations" :key="item.id" class="recommend-item">
-            <div class="recommend-scenic">
-              <ScenicCard
-                :scenic="item"
-                :show-description="false"
-                @click="$router.push(`/map?id=${item.id}`)"
-              />
-            </div>
-            <div class="recommend-intro">
-              <section v-if="item.matchReason" class="intro-block">
-                <h4 class="intro-label">推荐理由</h4>
-                <p class="intro-text">{{ item.matchReason }}</p>
-              </section>
-              <section v-if="item.description" class="intro-block">
-                <h4 class="intro-label">景点介绍</h4>
-                <p class="intro-text">{{ item.description }}</p>
-              </section>
-              <!-- 行程预案 -->
-              <section v-if="item.tripPlan" class="trip-plan">
-                <h4 class="intro-label trip-plan-title">📋 行程预案</h4>
-                <div class="trip-plan-grid">
-                  <div v-if="item.tripPlan.transportation" class="trip-plan-item">
-                    <span class="trip-plan-icon">🚗</span>
-                    <div class="trip-plan-content">
-                      <span class="trip-plan-key">出行方式</span>
-                      <span v-if="item.tripPlan.transportation.mode">{{ item.tripPlan.transportation.mode }}</span>
-                      <span v-if="item.tripPlan.transportation.duration">，{{ item.tripPlan.transportation.duration }}</span>
-                      <span v-if="item.tripPlan.transportation.costEstimate">，{{ item.tripPlan.transportation.costEstimate }}</span>
+        <h2 v-if="recommendations.length" class="section-title">
+          为您推荐
+          <span class="section-subtitle">{{ activeIndex + 1 }} / {{ recommendations.length }}</span>
+          <el-tag v-if="cachedResult" type="info" size="small" effect="plain" class="cache-tag">
+            上次结果
+          </el-tag>
+        </h2>
+
+        <!-- Card Stack -->
+        <div class="card-stack" v-if="recommendations.length">
+          <button
+            class="stack-arrow stack-arrow-left"
+            @click="prevCard"
+            aria-label="上一个推荐"
+          >
+            <el-icon><ArrowLeft /></el-icon>
+          </button>
+
+          <div class="card-stack-stage">
+            <div
+              v-for="(item, index) in recommendations"
+              :key="item.id"
+              class="stack-card"
+              :class="getCardStackClass(index)"
+              :style="{ position: index === activeIndex ? 'relative' : 'absolute' }"
+              @click="activeIndex = index"
+            >
+              <div class="stack-card-image">
+                <img :src="resolveScenicCover(item)" :alt="item.name" @error="onScenicImageError" />
+                <div class="stack-card-image-shade"></div>
+                <span class="stack-card-category">{{ item.category }}</span>
+                <span class="stack-card-number">#{{ index + 1 }}</span>
+              </div>
+              <div class="stack-card-body">
+                <!-- Inactive card: compact header only -->
+                <template v-if="index !== activeIndex">
+                  <div class="stack-card-header">
+                    <h3 class="stack-card-name">{{ item.name }}</h3>
+                    <p class="stack-card-location">
+                      <el-icon><Location /></el-icon>{{ item.location }}
+                    </p>
+                  </div>
+                </template>
+
+                <!-- Active card: two-column layout -->
+                <div v-if="index === activeIndex" class="stack-card-columns">
+                  <!-- Left: info -->
+                  <div class="stack-card-left">
+                    <div class="stack-card-header">
+                      <h3 class="stack-card-name">{{ item.name }}</h3>
+                      <p class="stack-card-location">
+                        <el-icon><Location /></el-icon>{{ item.location }}
+                      </p>
+                      <span class="stack-card-price" v-if="item.price">
+                        <span class="price-currency">¥</span>{{ item.price }}
+                      </span>
+                    </div>
+                    <section v-if="item.matchReason" class="intro-block">
+                      <h4 class="intro-label">推荐理由</h4>
+                      <p class="intro-text">{{ item.matchReason }}</p>
+                    </section>
+                    <section v-if="item.description" class="intro-block">
+                      <h4 class="intro-label">景点介绍</h4>
+                      <p class="intro-text">{{ item.description }}</p>
+                    </section>
+                    <div class="recommend-actions">
+                      <el-button
+                        type="primary"
+                        plain
+                        :disabled="!guideAgentReady"
+                        @click.stop="goGenerateGuide(item)"
+                      >
+                        <el-icon><Document /></el-icon>
+                        生成攻略
+                      </el-button>
                     </div>
                   </div>
-                  <div v-if="item.tripPlan.weather" class="trip-plan-item">
-                    <span class="trip-plan-icon">🌤️</span>
-                    <div class="trip-plan-content">
-                      <span class="trip-plan-key">天气</span>
-                      <span>{{ item.tripPlan.weather }}</span>
-                    </div>
-                  </div>
-                  <div v-if="item.tripPlan.clothing" class="trip-plan-item">
-                    <span class="trip-plan-icon">👔</span>
-                    <div class="trip-plan-content">
-                      <span class="trip-plan-key">穿搭建议</span>
-                      <span>{{ item.tripPlan.clothing }}</span>
-                    </div>
-                  </div>
-                  <div v-if="item.tripPlan.accommodation" class="trip-plan-item">
-                    <span class="trip-plan-icon">🏨</span>
-                    <div class="trip-plan-content">
-                      <span class="trip-plan-key">住宿建议</span>
-                      <span>{{ item.tripPlan.accommodation }}</span>
+
+                  <!-- Right: trip plan -->
+                  <div class="stack-card-right">
+                    <section v-if="item.tripPlan" class="trip-plan">
+                      <h4 class="intro-label trip-plan-title">📋 行程预案</h4>
+                      <div class="trip-plan-grid">
+                        <div v-if="item.tripPlan.transportation" class="trip-plan-item">
+                          <span class="trip-plan-icon">🚗</span>
+                          <div class="trip-plan-content">
+                            <span class="trip-plan-key">出行方式</span>
+                            <span v-if="item.tripPlan.transportation.mode">{{ item.tripPlan.transportation.mode }}</span>
+                            <span v-if="item.tripPlan.transportation.duration">，{{ item.tripPlan.transportation.duration }}</span>
+                            <span v-if="item.tripPlan.transportation.costEstimate">，{{ item.tripPlan.transportation.costEstimate }}</span>
+                          </div>
+                        </div>
+                        <div v-if="item.tripPlan.weather" class="trip-plan-item">
+                          <span class="trip-plan-icon">🌤️</span>
+                          <div class="trip-plan-content">
+                            <span class="trip-plan-key">天气</span>
+                            <span>{{ item.tripPlan.weather }}</span>
+                          </div>
+                        </div>
+                        <div v-if="item.tripPlan.clothing" class="trip-plan-item">
+                          <span class="trip-plan-icon">👔</span>
+                          <div class="trip-plan-content">
+                            <span class="trip-plan-key">穿搭建议</span>
+                            <span>{{ item.tripPlan.clothing }}</span>
+                          </div>
+                        </div>
+                        <div v-if="item.tripPlan.accommodation" class="trip-plan-item">
+                          <span class="trip-plan-icon">🏨</span>
+                          <div class="trip-plan-content">
+                            <span class="trip-plan-key">住宿建议</span>
+                            <span>{{ item.tripPlan.accommodation }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-if="item.tripPlan.itinerary && item.tripPlan.itinerary.length" class="trip-plan-itinerary">
+                        <span class="trip-plan-key">📅 日程安排</span>
+                        <ul class="itinerary-list">
+                          <li v-for="(day, idx) in item.tripPlan.itinerary" :key="idx">{{ day }}</li>
+                        </ul>
+                      </div>
+                    </section>
+                    <div v-else class="trip-plan-empty">
+                      <p class="intro-text">暂无行程预案</p>
                     </div>
                   </div>
                 </div>
-                <div v-if="item.tripPlan.itinerary && item.tripPlan.itinerary.length" class="trip-plan-itinerary">
-                  <span class="trip-plan-key">📅 日程安排</span>
-                  <ul class="itinerary-list">
-                    <li v-for="(day, idx) in item.tripPlan.itinerary" :key="idx">{{ day }}</li>
-                  </ul>
-                </div>
-              </section>
-              <div class="recommend-actions">
-                <el-button
-                  type="primary"
-                  plain
-                  :disabled="!guideAgentReady"
-                  @click.stop="goGenerateGuide(item)"
-                >
-                  <el-icon><Document /></el-icon>
-                  生成攻略
-                </el-button>
               </div>
             </div>
           </div>
+
+          <button
+            class="stack-arrow stack-arrow-right"
+            @click="nextCard"
+            aria-label="下一个推荐"
+          >
+            <el-icon><ArrowRight /></el-icon>
+          </button>
         </div>
+
+        <!-- Number Indicators -->
+        <div class="stack-indicators" v-if="recommendations.length > 1">
+          <button
+            v-for="(item, index) in recommendations"
+            :key="'dot-' + item.id"
+            class="stack-dot"
+            :class="{ active: index === activeIndex }"
+            @click="activeIndex = index"
+            :aria-label="`切换到第 ${index + 1} 个推荐`"
+          >
+            {{ index + 1 }}
+          </button>
+        </div>
+
         <el-empty
           v-if="!loading && recommendations.length === 0 && hasSearched"
           description="暂无推荐结果，请调整出发地、标签、预算或行程天数后重试"
@@ -216,15 +294,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import ScenicCard from '@/components/scenic/ScenicCard.vue'
 import { getRecommendAgentStatus, postRecommendAgent, postRecommendAgentMore } from '@/api/scenic'
 import { getGuideAgentStatus } from '@/api/guide'
 import { formatScenicList, SCENIC_CATEGORY_LABELS } from '@/utils/categoryLabels'
 import { DEPARTURE_CITIES } from '@/constants/departureCities'
+import { resolveScenicCover, onScenicImageError } from '@/utils/scenicImage'
+import { saveRecommendCache, loadRecommendCache, clearRecommendCache } from '@/utils/recommendCache'
 import { ElMessage } from 'element-plus'
-import { Document, RefreshRight } from '@element-plus/icons-vue'
+import { Document, RefreshRight, ArrowLeft, ArrowRight, Location } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -243,6 +322,8 @@ const days = ref(5)
 const loadingMore = ref(false)
 const noMoreResults = ref(false)
 const lastSearchParams = ref(null)
+const activeIndex = ref(0)
+const cachedResult = ref(false)
 
 const travelTypes = [
   '自然风光',
@@ -333,6 +414,7 @@ async function getRecommendations() {
   hasSearched.value = true
   resultSummary.value = ''
   noMoreResults.value = false
+  activeIndex.value = 0
   try {
     const params = {
       departureCity: departureCity.value.trim(),
@@ -355,6 +437,16 @@ async function getRecommendations() {
     const fromWeb = res.data?.fromWeb ?? 0
     resultSummary.value = res.data?.summary || ''
     if (recommendations.value.length) {
+      cachedResult.value = false
+      saveRecommendCache({
+        recommendations: recommendations.value,
+        resultSummary: resultSummary.value,
+        departureCity: departureCity.value.trim(),
+        selectedTypes: selectedTypes.value,
+        budget: budget.value,
+        days: days.value,
+        customPrompt: customPrompt.value.trim(),
+      })
       ElMessage.success(
         fromWeb > 0
           ? `已推荐 ${recommendations.value.length} 处（库内 ${fromDb}，新入库 ${fromWeb}）`
@@ -370,6 +462,36 @@ async function getRecommendations() {
   } finally {
     loading.value = false
   }
+}
+
+function prevCard() {
+  const len = recommendations.value.length
+  if (!len) return
+  activeIndex.value = (activeIndex.value - 1 + len) % len
+}
+
+function nextCard() {
+  const len = recommendations.value.length
+  if (!len) return
+  activeIndex.value = (activeIndex.value + 1) % len
+}
+
+function getCardStackClass(index) {
+  const len = recommendations.value.length
+  if (len <= 1) return index === activeIndex.value ? 'is-active' : ''
+  // Cyclic distance: shortest path around the ring
+  let diff = index - activeIndex.value
+  if (Math.abs(diff) > len / 2) {
+    diff = diff > 0 ? diff - len : diff + len
+  }
+  if (diff === 0) return 'is-active'
+  if (diff === -1) return 'is-left-1'
+  if (diff === 1) return 'is-right-1'
+  if (diff === -2) return 'is-left-2'
+  if (diff === 2) return 'is-right-2'
+  if (diff < -2) return 'is-far-left'
+  if (diff > 2) return 'is-far-right'
+  return ''
 }
 
 async function getMoreRecommendations() {
@@ -389,6 +511,15 @@ async function getMoreRecommendations() {
 
     if (newList.length > 0) {
       recommendations.value = [...recommendations.value, ...newList]
+      saveRecommendCache({
+        recommendations: recommendations.value,
+        resultSummary: resultSummary.value,
+        departureCity: departureCity.value.trim(),
+        selectedTypes: selectedTypes.value,
+        budget: budget.value,
+        days: days.value,
+        customPrompt: customPrompt.value.trim(),
+      })
       const fromDb = res.data?.fromDatabase ?? 0
       const fromWeb = res.data?.fromWeb ?? 0
       ElMessage.success(
@@ -408,8 +539,37 @@ async function getMoreRecommendations() {
   }
 }
 
+function handleKeydown(e) {
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    prevCard()
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    nextCard()
+  }
+}
+
 onMounted(() => {
   fetchAgentStatus()
+  window.addEventListener('keydown', handleKeydown)
+
+  // 尝试从本地缓存恢复上次推荐结果
+  const cache = loadRecommendCache()
+  if (cache && cache.recommendations?.length) {
+    recommendations.value = cache.recommendations
+    resultSummary.value = cache.resultSummary || ''
+    departureCity.value = cache.departureCity || ''
+    selectedTypes.value = cache.selectedTypes || []
+    budget.value = cache.budget || [0, 10000]
+    days.value = cache.days || 5
+    customPrompt.value = cache.customPrompt || ''
+    hasSearched.value = true
+    cachedResult.value = true
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -501,60 +661,300 @@ onMounted(() => {
   font-size: var(--font-size-xl);
   font-weight: 600;
   margin-bottom: var(--spacing-lg);
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
 }
 
-.recommend-list {
+.section-subtitle {
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--color-gold);
+  white-space: nowrap;
+}
+
+.cache-tag {
+  margin-left: var(--spacing-xs);
+  vertical-align: middle;
+}
+
+/* ========== Card Stack ========== */
+.card-stack {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xl);
+  align-items: center;
   max-width: 960px;
   margin: 0 auto;
+  padding: 0 52px;
 }
 
-.recommend-item {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
+/* ---- Stage ---- */
+.card-stack-stage {
+  position: relative;
+  width: 100%;
+  perspective: 1200px;
+}
+
+/* ---- Individual Card ---- */
+.stack-card {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 500px;
+  max-width: 960px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: border-color var(--transition-normal);
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  transform-origin: center center;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
 }
 
-.recommend-item:hover {
+/* Active card */
+.stack-card.is-active {
+  z-index: 5;
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  pointer-events: auto;
+  box-shadow: var(--shadow-lg), var(--shadow-gold);
   border-color: var(--color-gold-border);
+  cursor: default;
 }
 
-.recommend-scenic {
-  flex: 0 0 300px;
-  max-width: 300px;
-  border-right: 1px solid var(--color-border-light);
+/* Left peek - 1 behind */
+.stack-card.is-left-1 {
+  z-index: 4;
+  opacity: 0.45;
+  transform: translateX(-7%) scale(0.88) rotateY(6deg);
+  pointer-events: auto;
 }
 
-.recommend-scenic :deep(.scenic-card) {
-  border: none;
-  border-radius: 0;
+/* Right peek - 1 behind */
+.stack-card.is-right-1 {
+  z-index: 4;
+  opacity: 0.45;
+  transform: translateX(7%) scale(0.88) rotateY(-6deg);
+  pointer-events: auto;
+}
+
+/* Left peek - 2 behind */
+.stack-card.is-left-2 {
+  z-index: 3;
+  opacity: 0.2;
+  transform: translateX(-12%) scale(0.78) rotateY(10deg);
+  pointer-events: auto;
+}
+
+/* Right peek - 2 behind */
+.stack-card.is-right-2 {
+  z-index: 3;
+  opacity: 0.2;
+  transform: translateX(12%) scale(0.78) rotateY(-10deg);
+  pointer-events: auto;
+}
+
+/* Far cards - hidden */
+.stack-card.is-far-left,
+.stack-card.is-far-right {
+  z-index: 1;
+  opacity: 0;
+  transform: translateX(0) scale(0.7);
+  pointer-events: none;
+}
+
+/* ---- Card Image ---- */
+.stack-card-image {
+  position: relative;
+  height: 180px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* Inactive cards: image fills entire card */
+.stack-card:not(.is-active) .stack-card-image {
   height: 100%;
 }
 
-.recommend-scenic :deep(.scenic-card:hover) {
-  box-shadow: none;
+.stack-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.recommend-intro {
+.stack-card.is-active:hover .stack-card-image img {
+  transform: scale(1.04);
+}
+
+.stack-card-image-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 15, 26, 0.45) 0%,
+    transparent 40%,
+    rgba(10, 15, 26, 0.6) 100%
+  );
+  pointer-events: none;
+}
+
+/* Inactive: darker overlay for readability */
+.stack-card:not(.is-active) .stack-card-image-shade {
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 15, 26, 0.35) 0%,
+    rgba(10, 15, 26, 0.5) 60%,
+    rgba(10, 15, 26, 0.85) 100%
+  );
+}
+
+.stack-card-category {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-block;
+  padding: 5px 12px;
+  background: rgba(10, 15, 26, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(200, 169, 81, 0.5);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-gold-light);
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+}
+
+.stack-card-number {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(10, 15, 26, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(200, 169, 81, 0.4);
+  border-radius: 50%;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-gold-light);
+  font-family: var(--font-display);
+}
+
+/* ---- Card Body ---- */
+.stack-card-body {
   flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  padding-top: 48px;
+}
+
+/* Inactive card: overlay header on top of full-bleed image */
+.stack-card:not(.is-active) .stack-card-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: linear-gradient(transparent, rgba(10, 15, 26, 0.92));
+  color: #fff;
+  flex: none;
+  overflow: visible;
+}
+
+.stack-card:not(.is-active) .stack-card-body .stack-card-name {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.stack-card:not(.is-active) .stack-card-body .stack-card-location {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ---- Stack Card Header ---- */
+.stack-card-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.stack-card:not(.is-active) .stack-card-header {
+  margin-bottom: 0;
+}
+
+.stack-card-name {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+
+.stack-card:not(.is-active) .stack-card-name {
+  font-size: var(--font-size-base);
+}
+
+.stack-card-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stack-card-price {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.price-currency {
+  font-size: var(--font-size-sm);
+  vertical-align: super;
+}
+
+.stack-card:not(.is-active) .stack-card-price {
+  display: none;
+}
+
+/* ---- Two-Column Layout (active card) ---- */
+.stack-card-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xl);
+  height: 100%;
+  overflow: hidden;
+  padding: var(--spacing-lg);
+}
+
+.stack-card-left {
+  overflow-y: auto;
+  padding-right: var(--spacing-lg);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  min-width: 0;
 }
 
+.stack-card-right {
+  overflow-y: auto;
+  border-left: 1px solid var(--color-border-light);
+  padding-left: var(--spacing-xl);
+  padding-right: var(--spacing-sm);
+}
+
+/* ---- Intro / Trip Plan blocks ---- */
 .intro-block {
   border-left: 3px solid var(--color-gold);
   padding-left: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .intro-label {
@@ -562,7 +962,7 @@ onMounted(() => {
   color: var(--color-gold);
   font-weight: 600;
   letter-spacing: 0.06em;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .intro-text {
@@ -571,31 +971,40 @@ onMounted(() => {
   line-height: 1.8;
 }
 
-/* 行程预案 */
+/* ---- Trip Plan ---- */
 .trip-plan {
-  border-left: 3px solid var(--color-primary);
-  padding-left: var(--spacing-md);
-  margin-top: var(--spacing-sm);
+  margin-bottom: 0;
 }
 
 .trip-plan-title {
   color: var(--color-primary) !important;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.trip-plan-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted);
 }
 
 .trip-plan-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-sm) var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 .trip-plan-item {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: 1.6;
+  padding: var(--spacing-sm);
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-sm);
 }
 
 .trip-plan-icon {
@@ -616,8 +1025,8 @@ onMounted(() => {
 }
 
 .trip-plan-itinerary {
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
   border-top: 1px dashed var(--color-border-light);
 }
 
@@ -630,16 +1039,95 @@ onMounted(() => {
 .itinerary-list li {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  line-height: 1.8;
-  padding: 2px 0;
+  line-height: 1.7;
+  padding: 4px 0;
 }
 
 .recommend-actions {
-  margin-top: var(--spacing-md);
+  margin-top: auto;
   padding-top: var(--spacing-md);
   border-top: 1px solid var(--color-border-light);
+  text-align: center;
 }
 
+/* ---- Arrows ---- */
+.stack-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 50%;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-50%);
+}
+
+.stack-arrow:hover {
+  background: var(--color-gold);
+  color: #fff;
+  border-color: var(--color-gold);
+  box-shadow: var(--shadow-md), var(--shadow-gold);
+}
+
+.stack-arrow:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.stack-arrow-left {
+  left: 0;
+}
+
+.stack-arrow-right {
+  right: 0;
+}
+
+/* ---- Number Indicators ---- */
+.stack-indicators {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-md);
+}
+
+.stack-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 50%;
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.stack-dot:hover {
+  border-color: var(--color-gold-border);
+  color: var(--color-gold);
+}
+
+.stack-dot.active {
+  background: var(--color-gold);
+  color: #fff;
+  border-color: var(--color-gold);
+  box-shadow: var(--shadow-gold);
+}
+
+/* ---- More Recommend ---- */
 .more-recommend {
   text-align: center;
   margin-top: var(--spacing-xl);
@@ -660,20 +1148,46 @@ onMounted(() => {
   margin-top: var(--spacing-sm);
 }
 
+/* ---- Responsive ---- */
 @media (max-width: 768px) {
-  .recommend-item {
-    flex-direction: column;
+  .card-stack {
+    padding: 0 40px;
   }
 
-  .recommend-scenic {
-    flex: none;
-    max-width: none;
-    border-right: none;
-    border-bottom: 1px solid var(--color-border-light);
+  .stack-card {
+    height: auto;
+    min-height: 420px;
   }
 
-  .trip-plan-grid {
+  .stack-card-image {
+    height: 160px;
+  }
+
+  .stack-card-columns {
     grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .stack-card-right {
+    border-left: none;
+    border-top: 1px solid var(--color-border-light);
+    padding-left: 0;
+    padding-top: var(--spacing-md);
+  }
+
+  .stack-arrow {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Hide side-peeking cards on mobile */
+  .stack-card.is-left-1,
+  .stack-card.is-right-1,
+  .stack-card.is-left-2,
+  .stack-card.is-right-2 {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(0) scale(0.85);
   }
 }
 </style>
