@@ -111,7 +111,14 @@
         <el-alert :title="resultSummary" type="success" show-icon :closable="false" />
       </div>
 
-      <div class="recommend-results" v-loading="loading">
+      <!-- AI 处理进度覆盖 -->
+      <ProgressOverlay
+        :visible="loading"
+        title="AI 正在为您规划行程"
+        :steps="recommendSteps"
+      />
+
+      <div class="recommend-results">
         <h2 v-if="recommendations.length" class="section-title">
           为您推荐
           <span class="section-subtitle">{{ activeIndex + 1 }} / {{ recommendations.length }}</span>
@@ -302,6 +309,7 @@ import { formatScenicList, SCENIC_CATEGORY_LABELS } from '@/utils/categoryLabels
 import { DEPARTURE_CITIES } from '@/constants/departureCities'
 import { resolveScenicCover, onScenicImageError } from '@/utils/scenicImage'
 import { saveRecommendCache, loadRecommendCache, clearRecommendCache } from '@/utils/recommendCache'
+import ProgressOverlay from '@/components/common/ProgressOverlay.vue'
 import { ElMessage } from 'element-plus'
 import { Document, RefreshRight, ArrowLeft, ArrowRight, Location } from '@element-plus/icons-vue'
 
@@ -324,6 +332,15 @@ const noMoreResults = ref(false)
 const lastSearchParams = ref(null)
 const activeIndex = ref(0)
 const cachedResult = ref(false)
+
+// 推荐加载步骤
+const recommendSteps = [
+  { label: '正在联网搜索目的地...', duration: 2500 },
+  { label: 'AI 分析候选目的地...', duration: 3000 },
+  { label: '正在发现景点数据（高德 + 百度百科 + 维基导游）...', duration: 5000 },
+  { label: '获取实时天气信息...', duration: 2000 },
+  { label: 'AI 生成行程预案...', duration: 4000 },
+]
 
 const travelTypes = [
   '自然风光',
@@ -683,7 +700,7 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 52px;
 }
@@ -700,8 +717,8 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   width: 100%;
-  height: 500px;
-  max-width: 960px;
+  height: 620px;
+  max-width: 1100px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
@@ -766,10 +783,9 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* ---- Card Image ---- */
 .stack-card-image {
   position: relative;
-  height: 180px;
+  height: 300px;
   flex-shrink: 0;
   overflow: hidden;
   border-bottom: 1px solid var(--color-border-light);
@@ -1160,7 +1176,7 @@ onUnmounted(() => {
   }
 
   .stack-card-image {
-    height: 160px;
+    height: 220px;
   }
 
   .stack-card-columns {

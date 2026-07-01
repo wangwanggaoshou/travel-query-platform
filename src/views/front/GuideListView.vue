@@ -8,7 +8,14 @@
         <p class="page-desc">输入目的地或主题，由 AI 联网检索并撰写专属行程攻略</p>
       </div>
 
-      <div class="agent-panel" v-loading="generating">
+      <!-- AI 生成攻略进度覆盖 -->
+      <ProgressOverlay
+        :visible="generating"
+        title="AI 正在撰写攻略"
+        :steps="guideSteps"
+      />
+
+      <div class="agent-panel">
         <div class="agent-panel-head">
           <el-icon><MagicStick /></el-icon>
           <span>智能生成攻略</span>
@@ -46,8 +53,7 @@
             生成攻略
           </el-button>
         </div>
-        <p v-if="generating" class="agent-generating-hint">正在撰写攻略，请稍候…</p>
-        <p v-else-if="!agentReady" class="agent-hint">
+        <p v-if="!generating && !agentReady" class="agent-hint">
           请在 back-end/.env 中配置大模型（GUIDE_AGENT_LLM_API_KEY、GUIDE_AGENT_LLM_BASE_URL）及联网搜索（GUIDE_AGENT_WEB_SEARCH_API_KEY）。
         </p>
       </div>
@@ -80,6 +86,7 @@ import { ElMessage } from 'element-plus'
 import { MagicStick } from '@element-plus/icons-vue'
 import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
 import GuideCard from '@/components/guide/GuideCard.vue'
+import ProgressOverlay from '@/components/common/ProgressOverlay.vue'
 import { getGuideAgentStatus, generateGuide } from '@/api/guide'
 import {
   getRecentGuides,
@@ -98,6 +105,15 @@ const generateCategory = ref('')
 const pendingScenicId = ref(null)
 const pendingScenicName = ref('')
 const pendingLocation = ref('')
+
+// 攻略生成步骤
+const guideSteps = [
+  { label: '正在联网搜索目的地资料...', duration: 3000 },
+  { label: 'AI 正在查阅相关信息...', duration: 4000 },
+  { label: '正在整理景点与行程数据...', duration: 5000 },
+  { label: 'AI 正在撰写攻略内容...', duration: 6000 },
+  { label: '正在排版与优化...', duration: 3000 },
+]
 
 const categoryOptions = [
   { label: '城市漫步', value: 'city' },
@@ -253,15 +269,10 @@ onMounted(async () => {
   width: 160px;
 }
 
-.agent-hint,
-.agent-generating-hint {
+.agent-hint {
   margin-top: var(--spacing-sm);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-}
-
-.agent-generating-hint {
-  color: var(--color-gold);
 }
 
 .history-section {
