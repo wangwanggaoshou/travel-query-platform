@@ -8,6 +8,7 @@
       :visible="countryLoading"
       title="AI 正在探索这个国家"
       :steps="discoverSteps"
+      :externalProgress="progressPercent"
     />
 
     <!-- 地球视图 -->
@@ -32,30 +33,11 @@
       :countryName="selectedCountry?.name"
       @close="closeDetail"
     />
-
-    <!-- 页眉信息覆盖层 -->
-    <header class="page-header glass-dark" v-show="!loading">
-      <div class="logo-section">
-        <span class="logo-icon">🌍</span>
-        <div class="title-group">
-          <h1 class="page-title">环球旅游探索</h1>
-          <span class="page-subtitle">GLOBE EXPLORER</span>
-        </div>
-      </div>
-      <div class="header-controls">
-        <button class="control-btn" @click="resetView" title="重置视角">
-          <el-icon><HomeFilled /></el-icon>
-        </button>
-        <button class="control-btn" @click="toggleRotation" :class="{ active: autoRotate }" title="自动旋转">
-          <el-icon><Refresh /></el-icon>
-        </button>
-      </div>
-    </header>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import GlobeViewer from '@/components/globe/GlobeViewer.vue'
 import AttractionCard from '@/components/globe/AttractionCard.vue'
@@ -75,20 +57,25 @@ const countryLoading = ref(false)
 const detailVisible = ref(false)
 const selectedAttraction = ref(null)
 
+// AI 搜索进度百分比 & SSE 连接源
+const progressPercent = ref(-1)
+const sseSource = ref(null)
+
 // AI 搜索进度步骤
-const discoverSteps = [
+const discoverSteps = ref([
   { label: '正在识别国家/地区...', duration: 1500 },
   { label: 'AI 联网搜索目的地...', duration: 3000 },
   { label: '正在分析生成推荐...', duration: 4000 },
   { label: '正在获取景点图片...', duration: 3000 },
-]
+])
 
-// 初始化
-onMounted(() => {
-  setTimeout(() => {
-    loading.value = false
-  }, 2000)
-})
+// 关闭/断开 SSE
+const cleanSSE = () => {
+  if (sseSource.value) {
+    sseSource.value.close()
+    sseSource.value = null
+  }
+}
 
 // 重置视角
 const resetView = () => {
@@ -97,44 +84,153 @@ const resetView = () => {
 }
 
 // 切换自动旋转
-const toggleRotation = () => {
-  autoRotate.value = !autoRotate.value
+const toggleRotation = (forceValue = null) => {
+  if (forceValue !== null) {
+    autoRotate.value = forceValue
+  } else {
+    autoRotate.value = !autoRotate.value
+  }
   globeViewerRef.value?.toggleRotation()
+  // 通知 header 更新旋转状态
+  window.dispatchEvent(new CustomEvent('globe-rotation-changed', {
+    detail: { active: autoRotate.value }
+  }))
 }
 
-const handleLocationSelect = (data) => {
-  if (data.loading) {
-    countryLoading.value = true
-    cardVisible.value = true
-    selectedCountry.value = {
-      name: '加载中…',
-      nameEn: 'Loading',
-      flag: '🌍',
-      attractions: [],
-    }
-    return
+// 接收来自 Header 的控制事件
+const handleGlobeToggleRotate = () => {
+  toggleRotation()
+}
+
+const handleGlobeReset = () => {
+  resetView()
+}
+
+// 初始化
+onMounted(() => {
+  setTimeout(() => {
+    loading.value = false
+  }, 2000)
+
+  window.addEventListener('globe-toggle-rotate', handleGlobeToggleRotate)
+  window.addEventListener('globe-reset', handleGlobeReset)
+
+  // 初始同步状态给 Header
+  window.dispatchEvent(new CustomEvent('globe-rotation-changed', {
+    detail: { active: autoRotate.value }
+  }))
+})
+
+onUnmounted(() => {
+  window.removeEventListener('globe-toggle-rotate', handleGlobeToggleRotate)
+  window.removeEventListener('globe-reset', handleGlobeReset)
+  cleanSSE()
+})
+
+const handleLocationSelect = ({ longitude, latitude }) => {
+  // 1. 重置进度和卡片状态
+  progressPercent.value = 0
+  countryLoading.value = true
+  cardVisible.value = true
+  selectedCountry.value = {
+    name: '加载中…',
+    nameEn: 'Loading',
+    flag: '🌍',
+    attractions: [],
   }
 
-  countryLoading.value = false
+  // 恢复默认步骤标签
+  discoverSteps.value = [
+    { label: '正在识别国家/地区...', duration: 1500 },
+    { label: 'AI 联网搜索目的地...', duration: 3000 },
+    { label: '正在分析生成推荐...', duration: 4000 },
+    { label: '正在获取景点图片...', duration: 3000 },
+  ]
 
-  if (data.success) {
-    selectedCountry.value = data.country
-    cardVisible.value = true
+  cleanSSE()
 
-    const sourceLabel = data.country?.source === 'ai' ? '（AI 实时发现）' : ''
-    ElMessage({
-      message: `已加载 ${data.country.name} ${sourceLabel} ${data.country.attractions?.length || 0} 个目的地`,
-      type: 'success',
-      duration: 3000,
-      offset: 100,
-    })
-  } else {
+  // 2. 建立 SSE 连接读取真实后端进度
+  const url = `/api/globe/resolve/stream?lon=${longitude}&lat=${latitude}`
+  const sse = new EventSource(url)
+  sseSource.value = sse
+
+  sse.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+
+      if (data.error) {
+        sse.close()
+        cleanSSE()
+        countryLoading.value = false
+        cardVisible.value = false
+        selectedCountry.value = null
+        globeViewerRef.value?.clearCountryMarker()
+        globeViewerRef.value?.setLoading(false)
+        ElMessage({
+          message: data.error,
+          type: 'warning',
+          duration: 3000,
+          offset: 100,
+        })
+        return
+      }
+
+      if (data.progress !== undefined) {
+        progressPercent.value = data.progress
+      }
+
+      if (data.step !== undefined && data.message) {
+        const stepIdx = data.step
+        if (stepIdx >= 0 && stepIdx < discoverSteps.value.length) {
+          discoverSteps.value[stepIdx].label = data.message
+        }
+      }
+
+      if (data.done) {
+        sse.close()
+        cleanSSE()
+
+        // 成功获取数据（SSE 流中 result 直接就是 country 对象，无需 .data）
+        const countryData = data.result
+        selectedCountry.value = countryData
+        cardVisible.value = true
+
+        // 更新三维球上的标签
+        globeViewerRef.value?.setCountryLabel(countryData.name)
+        globeViewerRef.value?.setLoading(false)
+
+        const sourceLabel = countryData.source === 'ai' ? '（AI 实时发现）' : ''
+        ElMessage({
+          message: `已加载 ${countryData.name} ${sourceLabel} ${countryData.attractions?.length || 0} 个目的地`,
+          type: 'success',
+          duration: 3000,
+          offset: 100,
+        })
+
+        // 延迟半秒关闭遮罩，确保用户能看到100%成功的状态
+        setTimeout(() => {
+          countryLoading.value = false
+        }, 500)
+      }
+    } catch (e) {
+      console.error('解析 SSE 数据错误:', e)
+    }
+  }
+
+  sse.onerror = (err) => {
+    console.error('SSE 连接错误:', err)
+    sse.close()
+    cleanSSE()
+
+    countryLoading.value = false
     cardVisible.value = false
     selectedCountry.value = null
+    globeViewerRef.value?.clearCountryMarker()
+    globeViewerRef.value?.setLoading(false)
 
     ElMessage({
-      message: data.message || '该位置暂无景点数据',
-      type: 'warning',
+      message: '数据传输连接中断，请重新尝试',
+      type: 'error',
       duration: 3000,
       offset: 100,
     })
@@ -145,7 +241,9 @@ const handleLocationSelect = (data) => {
 const closeCard = () => {
   cardVisible.value = false
   countryLoading.value = false
+  cleanSSE()
   globeViewerRef.value?.clearCountryMarker()
+  globeViewerRef.value?.setLoading(false)
 }
 
 const closeDetail = () => {
@@ -169,116 +267,11 @@ const handleAttractionSelect = (attraction) => {
   background: var(--color-bg-deep);
 }
 
-.page-header {
-  position: absolute;
-  top: 16px;
-  left: 20px;
-  right: 20px;
-  padding: 12px 24px;
-  border-radius: var(--radius-lg);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 100;
-  border: 1px solid var(--color-border-light);
-}
-
-
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.logo-icon {
-  font-size: 28px;
-}
-
-.title-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.page-title {
-  font-family: var(--font-display);
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-  letter-spacing: 0.02em;
-}
-
-.page-subtitle {
-  font-size: 10px;
-  color: var(--color-gold);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  opacity: 0.8;
-}
-
-/* 控制按钮 —— 与标题同行 */
-.header-controls {
-  display: flex;
-  gap: 10px;
-}
-
-.control-btn {
-  width: 38px;
-  height: 38px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: rgba(17, 24, 39, 0.85);
-  backdrop-filter: blur(12px);
-  color: var(--color-text-secondary);
-  font-size: 16px;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  box-shadow: var(--shadow-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border-light);
-}
-
-.control-btn:hover {
-  transform: translateY(-2px);
-  color: var(--color-gold);
-  background: var(--color-bg-card-hover);
-  border-color: var(--color-gold-border);
-  box-shadow: var(--shadow-gold);
-}
-
-.control-btn.active {
-  background: linear-gradient(135deg, var(--color-teal-dark) 0%, var(--color-teal) 100%);
-  color: white;
-  border-color: var(--color-teal);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(13, 148, 136, 0); }
-}
-
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .page-header {
-    top: 16px;
-    left: 16px;
-    right: 16px;
-    padding: 10px 16px;
-  }
-
-  .page-title {
-    font-size: var(--font-size-base);
-  }
-
-  .control-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 14px;
+  .globe-explore-page {
+    height: calc(100vh - 64px);
   }
 }
 </style>

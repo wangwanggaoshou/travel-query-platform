@@ -146,45 +146,9 @@ const addClickHandler = () => {
     countryLoadInProgress = true
     setCountryMarker(cartesian, { loading: true })
     props.onLocationSelect({
-      loading: true,
       longitude,
       latitude,
     })
-
-    try {
-      const result = await reverseGeocode(longitude, latitude)
-
-      if (result.success) {
-        setCountryMarker(cartesian, {
-          loading: false,
-          label: result.country?.name || '已选国家',
-        })
-        props.onLocationSelect({
-          success: true,
-          country: result.country,
-          longitude,
-          latitude,
-        })
-      } else {
-        clearCountryMarker()
-        props.onLocationSelect({
-          success: false,
-          message: result.message,
-          longitude,
-          latitude,
-        })
-      }
-    } catch {
-      clearCountryMarker()
-      props.onLocationSelect({
-        success: false,
-        message: '加载失败，请稍后重试',
-        longitude,
-        latitude,
-      })
-    } finally {
-      countryLoadInProgress = false
-    }
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
 
   clickHandler = handler
@@ -290,11 +254,24 @@ onUnmounted(() => {
   }
 })
 
+const setCountryLabel = (label) => {
+  if (countryMarkerEntity && viewer) {
+    const position = countryMarkerEntity.position.getValue(viewer.clock.currentTime)
+    setCountryMarker(position, { loading: false, label })
+  }
+}
+
+const setLoading = (loadingVal) => {
+  countryLoadInProgress = loadingVal
+}
+
 // 暴露方法给父组件调用
 defineExpose({
   resetView,
   toggleRotation,
   clearCountryMarker,
+  setCountryLabel,
+  setLoading,
 })
 </script>
 

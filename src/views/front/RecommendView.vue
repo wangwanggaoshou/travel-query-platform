@@ -116,6 +116,7 @@
         :visible="loading"
         title="AI 正在为您规划行程"
         :steps="recommendSteps"
+        :externalProgress="progressPercent"
       />
 
       <div class="recommend-results">
@@ -333,14 +334,17 @@ const lastSearchParams = ref(null)
 const activeIndex = ref(0)
 const cachedResult = ref(false)
 
+const progressPercent = ref(-1)
+const sseSource = ref(null)
+
 // 推荐加载步骤
-const recommendSteps = [
+const recommendSteps = ref([
   { label: '正在联网搜索目的地...', duration: 2500 },
   { label: 'AI 分析候选目的地...', duration: 3000 },
   { label: '正在发现景点数据（高德 + 百度百科 + 维基导游）...', duration: 5000 },
   { label: '获取实时天气信息...', duration: 2000 },
   { label: 'AI 生成行程预案...', duration: 4000 },
-]
+])
 
 const travelTypes = [
   '自然风光',
@@ -359,6 +363,13 @@ const canSubmit = computed(
     departureCity.value.trim().length >= 2 &&
     (selectedTypes.value.length > 0 || customPrompt.value.trim().length > 0)
 )
+
+function cleanSSE() {
+  if (sseSource.value) {
+    sseSource.value.close()
+    sseSource.value = null
+  }
+}
 
 function toggleType(type) {
   const index = selectedTypes.value.indexOf(type)
@@ -425,59 +436,124 @@ function goGenerateGuide(item) {
   })
 }
 
-async function getRecommendations() {
+function getRecommendations() {
   if (!canSubmit.value) return
   loading.value = true
   hasSearched.value = true
   resultSummary.value = ''
   noMoreResults.value = false
   activeIndex.value = 0
-  try {
-    const params = {
-      departureCity: departureCity.value.trim(),
-      travelStyles: selectedTypes.value,
-      budgetMin: budget.value[0],
-      budgetMax: budget.value[1],
-      days: days.value,
-      customPrompt: customPrompt.value.trim() || undefined,
-      limit: 3,
-    }
-    lastSearchParams.value = params
+  progressPercent.value = 0
 
-    const res = await postRecommendAgent(params)
+  // 恢复默认步骤标签
+  recommendSteps.value = [
+    { label: '正在联网搜索目的地...', duration: 2500 },
+    { label: 'AI 分析候选目的地...', duration: 3000 },
+    { label: '正在发现景点数据（高德 + 百度百科 + 维基导游）...', duration: 5000 },
+    { label: '获取实时天气信息...', duration: 2000 },
+    { label: 'AI 生成行程预案...', duration: 4000 },
+  ]
 
-    recommendations.value = (res.data?.list || []).map((raw) => {
-      const formatted = formatScenicList([raw])[0]
-      return { ...formatted, categoryRaw: raw.category }
-    })
-    const fromDb = res.data?.fromDatabase ?? 0
-    const fromWeb = res.data?.fromWeb ?? 0
-    resultSummary.value = res.data?.summary || ''
-    if (recommendations.value.length) {
-      cachedResult.value = false
-      saveRecommendCache({
-        recommendations: recommendations.value,
-        resultSummary: resultSummary.value,
-        departureCity: departureCity.value.trim(),
-        selectedTypes: selectedTypes.value,
-        budget: budget.value,
-        days: days.value,
-        customPrompt: customPrompt.value.trim(),
-      })
-      ElMessage.success(
-        fromWeb > 0
-          ? `已推荐 ${recommendations.value.length} 处（库内 ${fromDb}，新入库 ${fromWeb}）`
-          : `已推荐 ${recommendations.value.length} 处景点`
-      )
-    } else {
-      ElMessage.info('暂无推荐结果，请调整条件后重试')
-      noMoreResults.value = true
+  cleanSSE()
+
+  const params = new URLSearchParams()
+  params.append('departureCity', departureCity.value.trim())
+  selectedTypes.value.forEach(type => params.append('travelStyles', type))
+  params.append('budgetMin', String(budget.value[0]))
+  params.append('budgetMax', String(budget.value[1]))
+  params.append('days', String(days.value))
+  if (customPrompt.value.trim()) {
+    params.append('customPrompt', customPrompt.value.trim())
+  }
+  params.append('limit', '3')
+
+  // 保存本次搜索参数，供“更多推荐”使用
+  lastSearchParams.value = {
+    departureCity: departureCity.value.trim(),
+    travelStyles: selectedTypes.value,
+    budgetMin: budget.value[0],
+    budgetMax: budget.value[1],
+    days: days.value,
+    customPrompt: customPrompt.value.trim() || undefined,
+    limit: 3,
+  }
+
+  const url = `/api/scenic/recommend/agent/stream?${params.toString()}`
+  const sse = new EventSource(url)
+  sseSource.value = sse
+
+  sse.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+
+      if (data.error) {
+        sse.close()
+        cleanSSE()
+        loading.value = false
+        ElMessage.warning(data.error)
+        return
+      }
+
+      if (data.progress !== undefined) {
+        progressPercent.value = data.progress
+      }
+
+      if (data.step !== undefined && data.message) {
+        const stepIdx = data.step
+        if (stepIdx >= 0 && stepIdx < recommendSteps.value.length) {
+          recommendSteps.value[stepIdx].label = data.message
+        }
+      }
+
+      if (data.done) {
+        sse.close()
+        cleanSSE()
+
+        const resData = data.result.data
+        recommendations.value = (resData?.list || []).map((raw) => {
+          const formatted = formatScenicList([raw])[0]
+          return { ...formatted, categoryRaw: raw.category }
+        })
+        const fromDb = resData?.fromDatabase ?? 0
+        const fromWeb = resData?.fromWeb ?? 0
+        resultSummary.value = resData?.summary || ''
+
+        if (recommendations.value.length) {
+          cachedResult.value = false
+          saveRecommendCache({
+            recommendations: recommendations.value,
+            resultSummary: resultSummary.value,
+            departureCity: departureCity.value.trim(),
+            selectedTypes: selectedTypes.value,
+            budget: budget.value,
+            days: days.value,
+            customPrompt: customPrompt.value.trim(),
+          })
+          ElMessage.success(
+            fromWeb > 0
+              ? `已推荐 ${recommendations.value.length} 处（库内 ${fromDb}，新入库 ${fromWeb}）`
+              : `已推荐 ${recommendations.value.length} 处景点`
+          )
+        } else {
+          ElMessage.info('暂无推荐结果，请调整条件后重试')
+          noMoreResults.value = true
+        }
+
+        setTimeout(() => {
+          loading.value = false
+        }, 500)
+      }
+    } catch (e) {
+      console.error('解析 SSE 数据错误:', e)
     }
-  } catch (error) {
-    console.error('获取推荐失败:', error)
-    recommendations.value = []
-  } finally {
+  }
+
+  sse.onerror = (err) => {
+    console.error('SSE 连接错误:', err)
+    sse.close()
+    cleanSSE()
     loading.value = false
+    ElMessage.error('智能推荐连接中断，请重试')
   }
 }
 
@@ -587,6 +663,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  cleanSSE()
 })
 </script>
 

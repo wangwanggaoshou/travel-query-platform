@@ -13,6 +13,7 @@
         :visible="generating"
         title="AI 正在撰写攻略"
         :steps="guideSteps"
+        :externalProgress="progressPercent"
       />
 
       <div class="agent-panel">
@@ -80,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { MagicStick } from '@element-plus/icons-vue'
@@ -107,14 +108,17 @@ const pendingScenicName = ref('')
 const pendingLocation = ref('')
 const pendingCoverImage = ref('')
 
+const progressPercent = ref(-1)
+const sseSource = ref(null)
+
 // 攻略生成步骤
-const guideSteps = [
+const guideSteps = ref([
   { label: '正在联网搜索目的地资料...', duration: 3000 },
   { label: 'AI 正在查阅相关信息...', duration: 4000 },
   { label: '正在整理景点与行程数据...', duration: 5000 },
   { label: 'AI 正在撰写攻略内容...', duration: 6000 },
   { label: '正在排版与优化...', duration: 3000 },
-]
+])
 
 const categoryOptions = [
   { label: '城市漫步', value: 'city' },
@@ -125,6 +129,17 @@ const categoryOptions = [
   { label: '历史古迹', value: 'history' },
 ]
 
+function cleanSSE() {
+  if (sseSource.value) {
+    sseSource.value.close()
+    sseSource.value = null
+  }
+}
+
+onUnmounted(() => {
+  cleanSSE()
+})
+
 function loadRecentGuides() {
   recentGuides.value = getRecentGuides()
 }
@@ -133,42 +148,104 @@ function goToDetail(guide) {
   router.push(`/guide/${guide.id}`)
 }
 
-async function runGenerate({ topic, scenicId, scenicName, location, category, coverImage } = {}) {
+function runGenerate({ topic, scenicId, scenicName, location, category, coverImage } = {}) {
   const t = (topic || generateTopic.value || '').trim()
   if (!t || !agentReady.value) return false
 
   generating.value = true
-  try {
-    const res = await generateGuide({
-      topic: t,
-      scenicId: scenicId ?? pendingScenicId.value ?? undefined,
-      scenicName: scenicName || pendingScenicName.value || undefined,
-      location: location || pendingLocation.value || undefined,
-      category: category || generateCategory.value || undefined,
-      coverImage: coverImage || pendingCoverImage.value || undefined,
-    })
-    const guide = buildGuideFromApi(res.data, {
-      topic: t,
-      scenicId: scenicId ?? pendingScenicId.value,
-      scenicName: scenicName || pendingScenicName.value,
-      coverImage: coverImage || pendingCoverImage.value,
-    })
-    saveRecentGuide(guide)
-    loadRecentGuides()
-    ElMessage.success('攻略已生成')
-    generateTopic.value = ''
-    pendingScenicId.value = null
-    pendingScenicName.value = ''
-    pendingLocation.value = ''
-    pendingCoverImage.value = ''
-    router.push(`/guide/${guide.id}`)
-    return true
-  } catch (error) {
-    console.error('生成攻略失败:', error)
-    return false
-  } finally {
-    generating.value = false
+  progressPercent.value = 0
+
+  // 恢复默认步骤标签
+  guideSteps.value = [
+    { label: '正在联网搜索目的地资料...', duration: 3000 },
+    { label: 'AI 正在查阅相关信息...', duration: 4000 },
+    { label: '正在整理景点与行程数据...', duration: 5000 },
+    { label: 'AI 正在撰写攻略内容...', duration: 6000 },
+    { label: '正在排版与优化...', duration: 3000 },
+  ]
+
+  cleanSSE()
+
+  const sId = scenicId ?? pendingScenicId.value ?? ''
+  const sName = scenicName || pendingScenicName.value || ''
+  const loc = location || pendingLocation.value || ''
+  const cat = category || generateCategory.value || ''
+  const cov = coverImage || pendingCoverImage.value || ''
+
+  const params = new URLSearchParams()
+  params.append('topic', t)
+  if (sId) params.append('scenicId', String(sId))
+  if (sName) params.append('scenicName', sName)
+  if (loc) params.append('location', loc)
+  if (cat) params.append('category', cat)
+  if (cov) params.append('coverImage', cov)
+
+  const url = `/api/guide/generate/stream?${params.toString()}`
+  const sse = new EventSource(url)
+  sseSource.value = sse
+
+  sse.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+
+      if (data.error) {
+        sse.close()
+        cleanSSE()
+        generating.value = false
+        ElMessage.error(data.error)
+        return
+      }
+
+      if (data.progress !== undefined) {
+        progressPercent.value = data.progress
+      }
+
+      if (data.step !== undefined && data.message) {
+        const stepIdx = data.step
+        if (stepIdx >= 0 && stepIdx < guideSteps.value.length) {
+          guideSteps.value[stepIdx].label = data.message
+        }
+      }
+
+      if (data.done) {
+        sse.close()
+        cleanSSE()
+
+        const guideData = data.result.data
+        const guide = buildGuideFromApi(guideData, {
+          topic: t,
+          scenicId: sId || undefined,
+          scenicName: sName || undefined,
+          coverImage: cov || undefined,
+        })
+        saveRecentGuide(guide)
+        loadRecentGuides()
+        ElMessage.success('攻略已生成')
+        generateTopic.value = ''
+        pendingScenicId.value = null
+        pendingScenicName.value = ''
+        pendingLocation.value = ''
+        pendingCoverImage.value = ''
+
+        setTimeout(() => {
+          generating.value = false
+          router.push(`/guide/${guide.id}`)
+        }, 500)
+      }
+    } catch (e) {
+      console.error('解析 SSE 数据错误:', e)
+    }
   }
+
+  sse.onerror = (err) => {
+    console.error('SSE 连接错误:', err)
+    sse.close()
+    cleanSSE()
+    generating.value = false
+    ElMessage.error('生成攻略连接中断，请重试')
+  }
+
+  return true
 }
 
 async function handleGenerate() {

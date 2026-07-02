@@ -4,8 +4,10 @@
       <!-- Logo -->
       <router-link to="/" class="header-logo">
         <el-icon size="28" color="#c8a951"><Compass /></el-icon>
-        <span class="logo-text">旅途智览</span>
-        <span class="logo-accent">WANDERLUST</span>
+        <div class="logo-title-container">
+          <span class="logo-text">{{ isGlobeRoute ? '环球旅游探索' : '旅途智览' }}</span>
+          <span class="logo-accent">{{ isGlobeRoute ? 'GLOBE EXPLORER' : 'WANDERLUST' }}</span>
+        </div>
       </router-link>
 
       <!-- 导航菜单 -->
@@ -35,21 +37,58 @@
           <span>3D地球</span>
         </router-link>
       </nav>
+
+      <!-- 右侧控制区 -->
+      <div class="header-actions">
+        <template v-if="isGlobeRoute">
+          <button class="control-btn" @click="triggerGlobeReset" title="重置视角">
+            <el-icon><HomeFilled /></el-icon>
+          </button>
+          <button class="control-btn" @click="triggerGlobeToggleRotate" :class="{ active: isGlobeRotating }" title="自动旋转">
+            <el-icon><Refresh /></el-icon>
+          </button>
+        </template>
+        <div v-else class="header-actions-placeholder"></div>
+      </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const isScrolled = ref(false)
+const isGlobeRotating = ref(false)
+
+const isGlobeRoute = computed(() => route.path === '/globe')
 
 function handleScroll() {
   isScrolled.value = window.scrollY > 20
 }
 
-onMounted(() => window.addEventListener('scroll', handleScroll))
-onUnmounted(() => window.removeEventListener('scroll', handleScroll))
+function triggerGlobeReset() {
+  window.dispatchEvent(new CustomEvent('globe-reset'))
+}
+
+function triggerGlobeToggleRotate() {
+  window.dispatchEvent(new CustomEvent('globe-toggle-rotate'))
+}
+
+function handleRotationChanged(e) {
+  isGlobeRotating.value = !!e.detail?.active
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('globe-rotation-changed', handleRotationChanged)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('globe-rotation-changed', handleRotationChanged)
+})
 </script>
 
 <style scoped>
@@ -71,10 +110,9 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 .header-container {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: clamp(24px, 4vw, 56px);
+  justify-content: space-between;
   height: 100%;
-  max-width: 1120px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 var(--content-padding);
 }
@@ -85,33 +123,46 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   align-items: center;
   gap: var(--spacing-sm);
   text-decoration: none;
+  width: 220px;
   flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.logo-title-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .logo-text {
   font-family: var(--font-display);
-  font-size: var(--font-size-xl);
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .logo-accent {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 9px;
   color: var(--color-gold);
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   opacity: 0.7;
-  margin-top: 4px;
+  white-space: nowrap;
+  line-height: 1.1;
+  margin-top: 1px;
 }
 
 /* 导航 */
 .header-nav {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: center;
+  flex: 1;
   gap: 2px;
 }
 
@@ -127,6 +178,8 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   transition: all var(--transition-fast);
   text-decoration: none;
   position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-link::after {
@@ -160,6 +213,53 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   transform: scaleX(1);
 }
 
+/* 右侧控制区 */
+.header-actions {
+  width: 220px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.control-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(12px);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-light);
+}
+
+.control-btn:hover {
+  transform: translateY(-2px);
+  color: var(--color-gold);
+  background: var(--color-bg-card-hover);
+  border-color: var(--color-gold-border);
+  box-shadow: var(--shadow-gold);
+}
+
+.control-btn.active {
+  background: linear-gradient(135deg, var(--color-teal-dark) 0%, var(--color-teal) 100%);
+  color: white;
+  border-color: var(--color-teal);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(13, 148, 136, 0); }
+}
+
 @media (max-width: 900px) {
   .header-container {
     flex-direction: column;
@@ -172,6 +272,15 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   .app-header {
     height: auto;
     min-height: 64px;
+  }
+
+  .header-logo, .header-actions {
+    width: auto;
+    justify-content: center;
+  }
+
+  .header-actions-placeholder {
+    display: none;
   }
 
   .header-nav {
