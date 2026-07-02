@@ -105,6 +105,7 @@ const generateCategory = ref('')
 const pendingScenicId = ref(null)
 const pendingScenicName = ref('')
 const pendingLocation = ref('')
+const pendingCoverImage = ref('')
 
 // 攻略生成步骤
 const guideSteps = [
@@ -132,7 +133,7 @@ function goToDetail(guide) {
   router.push(`/guide/${guide.id}`)
 }
 
-async function runGenerate({ topic, scenicId, scenicName, location, category } = {}) {
+async function runGenerate({ topic, scenicId, scenicName, location, category, coverImage } = {}) {
   const t = (topic || generateTopic.value || '').trim()
   if (!t || !agentReady.value) return false
 
@@ -144,11 +145,13 @@ async function runGenerate({ topic, scenicId, scenicName, location, category } =
       scenicName: scenicName || pendingScenicName.value || undefined,
       location: location || pendingLocation.value || undefined,
       category: category || generateCategory.value || undefined,
+      coverImage: coverImage || pendingCoverImage.value || undefined,
     })
     const guide = buildGuideFromApi(res.data, {
       topic: t,
       scenicId: scenicId ?? pendingScenicId.value,
       scenicName: scenicName || pendingScenicName.value,
+      coverImage: coverImage || pendingCoverImage.value,
     })
     saveRecentGuide(guide)
     loadRecentGuides()
@@ -157,6 +160,7 @@ async function runGenerate({ topic, scenicId, scenicName, location, category } =
     pendingScenicId.value = null
     pendingScenicName.value = ''
     pendingLocation.value = ''
+    pendingCoverImage.value = ''
     router.push(`/guide/${guide.id}`)
     return true
   } catch (error) {
@@ -192,6 +196,7 @@ async function tryAutoGenerateFromQuery() {
   if (q.scenicId) pendingScenicId.value = Number(q.scenicId) || null
   if (q.scenicName) pendingScenicName.value = String(q.scenicName)
   if (q.location) pendingLocation.value = String(q.location)
+  if (q.coverImage) pendingCoverImage.value = String(q.coverImage)
 
   router.replace({ path: '/guide' })
 
@@ -206,6 +211,7 @@ async function tryAutoGenerateFromQuery() {
     scenicName: pendingScenicName.value,
     location: pendingLocation.value,
     category: generateCategory.value,
+    coverImage: pendingCoverImage.value,
   })
 }
 

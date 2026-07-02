@@ -22,3 +22,30 @@ export function onScenicImageError(event) {
   img.dataset.fallbackApplied = '1'
   img.src = SCENIC_IMAGE_PLACEHOLDER
 }
+
+/** 图片加载失败时尝试后端搜图回退（按 scenic name + location 重新搜索） */
+const _enriching = new Set()
+
+export async function tryEnrichScenicImage(scenic, imgEl) {
+  if (!scenic?.name || !imgEl) return
+  const key = `${scenic.name}|${scenic.location || ''}`
+  if (_enriching.has(key)) return
+  _enriching.add(key)
+  try {
+    const { enrichScenicImages } = await import('@/api/scenic')
+    const res = await enrichScenicImages(scenic.name, scenic.location)
+    if (res.code === 200 && res.data?.image) {
+      if (imgEl.src === SCENIC_IMAGE_PLACEHOLDER || imgEl.dataset.fallbackApplied) {
+        imgEl.src = res.data.image
+        imgEl.dataset.fallbackApplied = '0'
+      }
+      // 回写 scenic 对象，后续使用
+      scenic.image = scenic.image || res.data.image
+      if (!scenic.images?.length) scenic.images = [res.data.image]
+    }
+  } catch {
+    // 静默失败，保留 placeholder
+  } finally {
+    _enriching.delete(key)
+  }
+}

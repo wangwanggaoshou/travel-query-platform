@@ -38,3 +38,7 @@ export function postRecommendAgent(data) {
 export function postRecommendAgentMore(data) {
   return request.post('/scenic/recommend/agent/more', data, { timeout: 120000 })
 }
+
+export function enrichScenicImages(name, location) {
+  return request.get('/scenic/enrich-images', { params: { name, location }, timeout: 30000 })
+}

@@ -17,10 +17,10 @@
           @click="$router.push(`/map?id=${item.id}`)"
         >
           <div class="card-image">
-            <img :src="resolveScenicCover(item)" :alt="item.name" @error="onScenicImageError" />
+            <img :src="resolveScenicCover(item)" :alt="item.name" @error="(e) => handleImageError(e, item)" />
             <div class="card-image-overlay"></div>
             <div class="card-badge">
-              <el-tag size="small" effect="dark" class="gilded-tag">{{ item.category }}</el-tag>
+              <el-tag size="small" effect="dark" class="gilded-tag">{{ item.categoryLabel || item.category }}</el-tag>
             </div>
           </div>
           <div class="card-body">
@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { resolveScenicCover, onScenicImageError } from '@/utils/scenicImage'
+import { resolveScenicCover, onScenicImageError, tryEnrichScenicImage } from '@/utils/scenicImage'
 
 defineProps({
   scenicList: {
@@ -59,6 +59,11 @@ defineProps({
     default: () => [],
   },
 })
+
+function handleImageError(e, item) {
+  onScenicImageError(e)
+  tryEnrichScenicImage(item, e.target)
+}
 </script>
 
 <style scoped>

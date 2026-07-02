@@ -12,6 +12,7 @@
             @click="handleCategoryChange(cat.value)"
           >
             {{ cat.label }}
+            <span v-if="cat.count != null" class="chip-count">{{ cat.count }}</span>
           </button>
         </div>
       </div>
@@ -29,6 +30,20 @@
           </button>
         </div>
       </div>
+      <div class="filter-row">
+        <span class="filter-label">排序</span>
+        <div class="filter-options">
+          <button
+            v-for="opt in sortOptions"
+            :key="opt.value"
+            class="filter-chip"
+            :class="{ active: currentSort === opt.value }"
+            @click="handleSortChange(opt.value)"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -41,11 +56,18 @@ const emit = defineEmits(['filter-change'])
 
 const currentCategory = ref('')
 const currentRegion = ref('')
+const currentSort = ref('')
 const categories = ref([{ label: '全部', value: '' }])
 
 const regions = [
   { label: '全部', value: '' },
   { label: '国内', value: 'domestic' },
+]
+
+const sortOptions = [
+  { label: '综合排序', value: '' },
+  { label: '价格低→高', value: 'price_asc' },
+  { label: '价格高→低', value: 'price_desc' },
 ]
 
 function handleCategoryChange(value) {
@@ -58,10 +80,16 @@ function handleRegionChange(value) {
   emitChange()
 }
 
+function handleSortChange(value) {
+  currentSort.value = currentSort.value === value ? '' : value
+  emitChange()
+}
+
 function emitChange() {
   emit('filter-change', {
     category: currentCategory.value,
     region: currentRegion.value,
+    sortBy: currentSort.value,
   })
 }
 
@@ -71,8 +99,9 @@ onMounted(async () => {
     const apiCats = (res.data?.categories || []).map((c) => ({
       label: c.label,
       value: c.value,
+      count: c.count,
     }))
-    categories.value = [{ label: '全部', value: '' }, ...apiCats]
+    categories.value = [{ label: '全部', value: '', count: null }, ...apiCats]
   } catch (error) {
     console.error('获取景点分类失败:', error)
   }
@@ -130,6 +159,9 @@ onMounted(async () => {
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .filter-chip:hover {
@@ -143,5 +175,20 @@ onMounted(async () => {
   border-color: var(--color-gold-border);
   color: var(--color-gold);
   font-weight: 600;
+}
+
+.chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: rgba(200, 169, 81, 0.15);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-gold-light);
+  line-height: 1;
 }
 </style>

@@ -151,6 +151,8 @@ function goGenerateGuide() {
   const topic = props.attraction?.guideTopic || `${props.attraction?.name}旅游攻略`
   const category = props.attraction?.guideCategory || 'city'
   const country = props.countryName ? `${props.countryName} ` : ''
+  const coverImage = props.attraction?.image || (props.attraction?.images?.length ? props.attraction.images[0] : '')
+
   router.push({
     path: '/guide',
     query: {
@@ -159,6 +161,7 @@ function goGenerateGuide() {
       scenicName: props.attraction?.name,
       location: props.attraction?.location || '',
       category,
+      coverImage,
     },
   })
 }

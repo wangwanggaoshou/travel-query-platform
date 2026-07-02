@@ -48,9 +48,8 @@
         </div>
       </div>
 
-      <!-- 底部提示 -->
       <div class="card-footer">
-        <span>各国最多 5 个标志性目的地 · 点击查看图集与 AI 攻略</span>
+        <span>AI 实时发现 · 最多 5 个目的地 · 点击查看详情与攻略</span>
       </div>
     </div>
   </transition>
@@ -107,53 +106,65 @@ function coverUrl(attraction) {
 <style scoped>
 .attraction-card {
   position: fixed;
-  right: 30px;
+  right: 32px;
   top: 50%;
   transform: translateY(-50%);
-  width: 400px;
-  max-height: 80vh;
+  width: 440px;
+  max-height: 82vh;
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-xl), 0 0 40px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-light);
 }
 
 .close-btn {
   position: absolute;
   top: 16px;
   right: 16px;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border: none;
-  background: rgba(200, 169, 81, 0.1);
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
   border-radius: var(--radius-full);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-normal);
+  transition: all 0.3s ease;
   z-index: 10;
   color: var(--color-text-secondary);
 }
 
 .close-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.25);
   transform: rotate(90deg);
-  color: var(--color-danger);
+  color: #fff;
 }
 
 .country-header {
-  padding: 24px 24px 16px;
-  background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-elevated) 100%);
+  padding: 28px 28px 20px;
+  background: linear-gradient(160deg, rgba(17, 24, 39, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
-  border-bottom: 1px solid var(--color-border-light);
+  gap: 18px;
+  border-bottom: 1px solid rgba(200, 169, 81, 0.15);
+  position: relative;
+}
+
+.country-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 28px;
+  right: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(200, 169, 81, 0.3), transparent);
 }
 
 .header-loading {
@@ -170,8 +181,9 @@ function coverUrl(attraction) {
 }
 
 .flag {
-  font-size: 48px;
+  font-size: 52px;
   line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
 .title h2 {
@@ -187,41 +199,67 @@ function coverUrl(attraction) {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.18em;
+  font-weight: 500;
 }
 
 .attractions-list {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 20px 16px;
+  background: rgba(10, 15, 26, 0.4);
 }
 
 .attractions-list::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .attractions-list::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: rgba(200, 169, 81, 0.2);
   border-radius: var(--radius-full);
+}
+
+.attractions-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .attraction-item {
   display: flex;
   gap: 16px;
   padding: 16px;
-  margin-bottom: 12px;
-  background: var(--color-bg-secondary);
+  margin-bottom: 14px;
+  background: rgba(17, 24, 39, 0.6);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-normal);
-  border: 1px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  position: relative;
+}
+
+.attraction-item::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-lg);
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(200, 169, 81, 0), rgba(200, 169, 81, 0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .attraction-item:hover {
-  transform: translateX(-4px);
-  background: var(--color-bg-card-hover);
-  border-color: var(--color-gold-border);
-  box-shadow: var(--shadow-gold);
+  transform: translateX(-6px);
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(200, 169, 81, 0.3);
+  box-shadow: 0 4px 20px rgba(200, 169, 81, 0.1);
+}
+
+.attraction-item:hover::before {
+  background: linear-gradient(135deg, rgba(200, 169, 81, 0.4), rgba(13, 148, 136, 0.2));
 }
 
 .attraction-item:last-child {
@@ -230,33 +268,31 @@ function coverUrl(attraction) {
 
 .image-wrapper {
   flex-shrink: 0;
-  width: 100px;
-  height: 100px;
+  width: 110px;
+  height: 110px;
   border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 .image-wrapper img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform var(--transition-normal);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .attraction-item:hover .image-wrapper img {
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
 .image-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to top, rgba(200, 169, 81, 0.2), transparent);
+  inset: 0;
+  background: linear-gradient(135deg, rgba(200, 169, 81, 0.15), transparent 60%);
   opacity: 0;
-  transition: opacity var(--transition-normal);
+  transition: opacity 0.3s ease;
 }
 
 .attraction-item:hover .image-overlay {
@@ -266,15 +302,22 @@ function coverUrl(attraction) {
 .content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .name {
   font-family: var(--font-display);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0 0 6px 0;
   line-height: 1.3;
+}
+
+.attraction-item:hover .name {
+  color: var(--color-gold-light);
 }
 
 .location {
@@ -288,12 +331,13 @@ function coverUrl(attraction) {
 
 .location .el-icon {
   color: var(--color-gold);
+  font-size: 13px;
 }
 
 .description {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -304,53 +348,73 @@ function coverUrl(attraction) {
 .type-badge {
   display: inline-block;
   margin-top: 8px;
-  padding: 2px 8px;
+  padding: 3px 10px;
   font-size: 10px;
   color: var(--color-gold);
-  border: 1px solid var(--color-gold-border);
+  border: 1px solid rgba(200, 169, 81, 0.3);
   border-radius: var(--radius-full);
+  background: rgba(200, 169, 81, 0.06);
+  letter-spacing: 0.04em;
+  font-weight: 500;
 }
 
 .card-footer {
-  padding: 12px 24px;
-  background: var(--color-bg-secondary);
-  border-top: 1px solid var(--color-border-light);
+  padding: 14px 24px;
+  background: rgba(17, 24, 39, 0.9);
+  border-top: 1px solid rgba(200, 169, 81, 0.1);
   text-align: center;
 }
 
 .card-footer span {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+  letter-spacing: 0.03em;
 }
 
 /* 动画效果 */
-.card-fade-enter-active,
+.card-fade-enter-active {
+  transition: all 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .card-fade-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-fade-enter-from {
   opacity: 0;
-  transform: translateY(-50%) translateX(50px);
+  transform: translateY(-50%) translateX(60px);
 }
 
 .card-fade-leave-to {
   opacity: 0;
-  transform: translateY(-50%) translateX(50px);
+  transform: translateY(-50%) translateX(40px);
 }
 
-/* 响应式设�?*/
+/* 响应式 */
 @media (max-width: 768px) {
   .attraction-card {
-    right: 16px;
-    left: 16px;
+    right: 12px;
+    left: 12px;
     width: auto;
-    max-height: 70vh;
+    max-height: 72vh;
+  }
+
+  .country-header {
+    padding: 20px 20px 16px;
+  }
+
+  .flag {
+    font-size: 40px;
+  }
+
+  .image-wrapper {
+    width: 80px;
+    height: 80px;
   }
 
   .card-fade-enter-from,
   .card-fade-leave-to {
-    transform: translateY(100%);
+    transform: translateY(30%);
   }
 }
 </style>

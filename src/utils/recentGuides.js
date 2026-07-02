@@ -44,14 +44,14 @@ export function getRelatedRecentGuides(scenicId, excludeId, limit = 3) {
     .slice(0, limit)
 }
 
-export function buildGuideFromApi(data, { topic, scenicId, scenicName } = {}) {
+export function buildGuideFromApi(data, { topic, scenicId, scenicName, coverImage } = {}) {
   const id = createLocalGuideId()
   return {
     id,
     title: data.title,
     summary: data.summary,
     content: data.content,
-    cover: data.cover,
+    cover: coverImage || data.cover,
     author: data.author || 'AI攻略助手',
     authorAvatar: data.authorAvatar,
     tags: data.tags || ['AI生成'],

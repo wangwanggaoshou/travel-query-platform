@@ -1,4 +1,6 @@
-export const SCENIC_CATEGORY_LABELS = {
+/** 分类标签由后端 /scenic/categories 接口统一提供，此处仅做兼容回退 */
+
+const FALLBACK_LABELS = {
   nature: '自然风光',
   history: '历史古迹',
   theme_park: '主题乐园',
@@ -9,14 +11,14 @@ export const SCENIC_CATEGORY_LABELS = {
 }
 
 export function getCategoryLabel(value) {
-  return SCENIC_CATEGORY_LABELS[value] || value || ''
+  return FALLBACK_LABELS[value] || value || ''
 }
 
 export function formatScenicItem(item) {
   if (!item) return item
   return {
     ...item,
-    category: getCategoryLabel(item.category),
+    categoryLabel: item.categoryLabel || getCategoryLabel(item.category),
   }
 }
 

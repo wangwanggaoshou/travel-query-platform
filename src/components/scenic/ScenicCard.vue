@@ -1,19 +1,19 @@
 <template>
   <div class="scenic-card hover-lift" @click="$emit('click', scenic)">
     <div class="card-cover">
-      <img :src="coverUrl" :alt="scenic.name" @error="onScenicImageError" />
+      <img ref="coverRef" :src="coverUrl" :alt="scenic.name" @error="handleImageError" />
       <div class="card-cover-gradient"></div>
       <div class="card-overlay">
-        <span class="card-category">{{ scenic.category }}</span>
+        <span class="card-category">{{ scenic.categoryLabel || scenic.category }}</span>
       </div>
     </div>
     <div class="card-info">
-      <h3 class="card-name">{{ scenic.name }}</h3>
+      <h3 class="card-name" v-html="displayName"></h3>
       <p class="card-location">
         <el-icon><Location /></el-icon>
         {{ scenic.location }}
       </p>
-      <p v-if="showDescription" class="card-desc">{{ scenic.description }}</p>
+      <p v-if="showDescription" class="card-desc" v-html="displayDesc"></p>
       <div class="card-bottom">
         <span class="card-price" v-if="scenic.price">
           <span class="price-currency">¥</span>{{ scenic.price }}
@@ -25,8 +25,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { resolveScenicCover, onScenicImageError } from '@/utils/scenicImage'
+import { computed, ref, watch } from 'vue'
+import { resolveScenicCover, onScenicImageError, tryEnrichScenicImage } from '@/utils/scenicImage'
 
 const props = defineProps({
   scenic: {
@@ -37,11 +37,35 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  keyword: {
+    type: String,
+    default: '',
+  },
 })
 
 defineEmits(['click'])
 
 const coverUrl = computed(() => resolveScenicCover(props.scenic))
+const coverRef = ref(null)
+
+function highlight(text) {
+  if (!text || !props.keyword) return text
+  const kw = String(props.keyword).trim()
+  if (!kw) return text
+  const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return String(text).replace(
+    new RegExp(`(${escaped})`, 'gi'),
+    '<mark class="kw-hl">$1</mark>'
+  )
+}
+
+const displayName = computed(() => highlight(props.scenic.name))
+const displayDesc = computed(() => highlight(props.scenic.description))
+
+function handleImageError(e) {
+  onScenicImageError(e)
+  tryEnrichScenicImage(props.scenic, e.target)
+}
 </script>
 
 <style scoped>
@@ -170,5 +194,12 @@ const coverUrl = computed(() => resolveScenicCover(props.scenic))
   gap: 4px;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+:deep(.kw-hl) {
+  background: rgba(200, 169, 81, 0.25);
+  color: var(--color-gold-light);
+  border-radius: 2px;
+  padding: 0 2px;
 }
 </style>

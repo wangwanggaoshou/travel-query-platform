@@ -3,6 +3,13 @@
     <!-- 加载动画 -->
     <LoadingSpinner :visible="loading" text="正在初始化3D地球..." />
 
+    <!-- AI 景点搜索进度 -->
+    <ProgressOverlay
+      :visible="countryLoading"
+      title="AI 正在探索这个国家"
+      :steps="discoverSteps"
+    />
+
     <!-- 地球视图 -->
     <GlobeViewer
       ref="globeViewerRef"
@@ -54,6 +61,7 @@ import GlobeViewer from '@/components/globe/GlobeViewer.vue'
 import AttractionCard from '@/components/globe/AttractionCard.vue'
 import GlobeAttractionDetail from '@/components/globe/GlobeAttractionDetail.vue'
 import LoadingSpinner from '@/components/globe/LoadingSpinner.vue'
+import ProgressOverlay from '@/components/common/ProgressOverlay.vue'
 
 // 地球控制状态
 const autoRotate = ref(false)
@@ -66,6 +74,14 @@ const selectedCountry = ref(null)
 const countryLoading = ref(false)
 const detailVisible = ref(false)
 const selectedAttraction = ref(null)
+
+// AI 搜索进度步骤
+const discoverSteps = [
+  { label: '正在识别国家/地区...', duration: 1500 },
+  { label: 'AI 联网搜索目的地...', duration: 3000 },
+  { label: '正在分析生成推荐...', duration: 4000 },
+  { label: '正在获取景点图片...', duration: 3000 },
+]
 
 // 初始化
 onMounted(() => {
@@ -105,8 +121,9 @@ const handleLocationSelect = (data) => {
     selectedCountry.value = data.country
     cardVisible.value = true
 
+    const sourceLabel = data.country?.source === 'ai' ? '（AI 实时发现）' : ''
     ElMessage({
-      message: `已加载 ${data.country.name} 标志性目的地（${data.country.attractions?.length || 0} 个）`,
+      message: `已加载 ${data.country.name} ${sourceLabel} ${data.country.attractions?.length || 0} 个目的地`,
       type: 'success',
       duration: 3000,
       offset: 100,

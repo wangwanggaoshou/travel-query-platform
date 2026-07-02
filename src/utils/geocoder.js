@@ -29,6 +29,7 @@ function mapCountryResponse(data, longitude, latitude) {
       nameEn: data.nameEn,
       flag: data.flag,
       attractions,
+      source: data.source || 'local',
     },
     longitude,
     latitude,

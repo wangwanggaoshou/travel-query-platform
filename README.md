@@ -66,7 +66,7 @@ D:\gcsj_4\
 │       ├── components/              # 公共组件
 │       │   ├── common/              # AppHeader / AppBreadcrumb / SearchBar
 │       │   ├── home/                # HeroBanner / HotScenic / FeaturedCarousel
-│       │   ├── scenic/              # ScenicCard / ScenicFilter / ScenicGallery
+│       │   ├── scenic/              # ScenicCard / ScenicFilter / ScenicGallery / ScenicDetailDrawer
 │       │   ├── globe/               # GlobeViewer / AttractionCard / GlobeAttractionDetail
 │       │   └── guide/               # GuideCard
 │       │
@@ -80,7 +80,7 @@ D:\gcsj_4\
 │       │
 │       ├── router/                  # index.js / frontRoutes.js
 │       │
-│       ├── stores/                  # scenic.js / app.js
+│       ├── stores/                  # app.js（全局状态）
 │       │
 │       ├── utils/                   # request / format / validate / amapPoi / geocoder 等
 │       │
