@@ -16,34 +16,6 @@
           </button>
         </div>
       </div>
-      <div class="filter-row">
-        <span class="filter-label">地区</span>
-        <div class="filter-options">
-          <button
-            v-for="region in regions"
-            :key="region.value"
-            class="filter-chip"
-            :class="{ active: currentRegion === region.value }"
-            @click="handleRegionChange(region.value)"
-          >
-            {{ region.label }}
-          </button>
-        </div>
-      </div>
-      <div class="filter-row">
-        <span class="filter-label">排序</span>
-        <div class="filter-options">
-          <button
-            v-for="opt in sortOptions"
-            :key="opt.value"
-            class="filter-chip"
-            :class="{ active: currentSort === opt.value }"
-            @click="handleSortChange(opt.value)"
-          >
-            {{ opt.label }}
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -55,41 +27,16 @@ import { getScenicCategories } from '@/api/scenic'
 const emit = defineEmits(['filter-change'])
 
 const currentCategory = ref('')
-const currentRegion = ref('')
-const currentSort = ref('')
 const categories = ref([{ label: '全部', value: '' }])
-
-const regions = [
-  { label: '全部', value: '' },
-  { label: '国内', value: 'domestic' },
-]
-
-const sortOptions = [
-  { label: '综合排序', value: '' },
-  { label: '价格低→高', value: 'price_asc' },
-  { label: '价格高→低', value: 'price_desc' },
-]
 
 function handleCategoryChange(value) {
   currentCategory.value = currentCategory.value === value ? '' : value
   emitChange()
 }
 
-function handleRegionChange(value) {
-  currentRegion.value = currentRegion.value === value ? '' : value
-  emitChange()
-}
-
-function handleSortChange(value) {
-  currentSort.value = currentSort.value === value ? '' : value
-  emitChange()
-}
-
 function emitChange() {
   emit('filter-change', {
     category: currentCategory.value,
-    region: currentRegion.value,
-    sortBy: currentSort.value,
   })
 }
 
