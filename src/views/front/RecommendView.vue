@@ -337,13 +337,12 @@ const cachedResult = ref(false)
 const progressPercent = ref(-1)
 const sseSource = ref(null)
 
-// 推荐加载步骤
+// 推荐加载步骤（与后端 4 步流程对齐）
 const recommendSteps = ref([
-  { label: '正在联网搜索目的地...', duration: 2500 },
-  { label: 'AI 分析候选目的地...', duration: 3000 },
-  { label: '正在发现景点数据（高德 + 百度百科 + 维基导游）...', duration: 5000 },
+  { label: 'AI 理解需求，智能推荐目的地...', duration: 3000 },
+  { label: '匹配库内景点，抓取缺失数据...', duration: 4000 },
   { label: '获取实时天气信息...', duration: 2000 },
-  { label: 'AI 生成行程预案...', duration: 4000 },
+  { label: 'AI 生成详细行程预案...', duration: 5000 },
 ])
 
 const travelTypes = [
