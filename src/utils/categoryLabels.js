@@ -10,6 +10,8 @@ const FALLBACK_LABELS = {
   none: '暂无分类',
 }
 
+export const SCENIC_CATEGORY_LABELS = FALLBACK_LABELS
+
 export function getCategoryLabel(value) {
   return FALLBACK_LABELS[value] || value || ''
 }

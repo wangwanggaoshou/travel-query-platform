@@ -39,19 +39,25 @@ let lastCountryClickAt = 0
 const initCesium = async () => {
   if (!cesiumContainer.value) return
 
+  let terrainProvider
   if (CESIUM_CONFIG.ionToken) {
     Cesium.Ion.defaultAccessToken = CESIUM_CONFIG.ionToken
+    try {
+      terrainProvider = await Cesium.createWorldTerrainAsync({
+        requestWaterMask: true,
+        requestVertexNormals: true
+      })
+    } catch (e) {
+      console.warn('Cesium 地形加载失败，使用默认地形:', e.message)
+      terrainProvider = undefined
+    }
   }
 
   viewer = new Cesium.Viewer(cesiumContainer.value, {
     imageryProvider: false,
     requestRenderMode: true,
     maximumRenderTimeChange: Infinity,
-
-    terrainProvider: await Cesium.createWorldTerrainAsync({
-      requestWaterMask: true,
-      requestVertexNormals: true
-    }),
+    terrainProvider,
 
     baseLayerPicker: false,
     geocoder: false,
@@ -62,6 +68,8 @@ const initCesium = async () => {
     timeline: false,
     fullscreenButton: false,
     vrButton: false,
+    infoBox: false,
+    selectionIndicator: false,
     creditContainer: document.createElement('div')
   })
 
